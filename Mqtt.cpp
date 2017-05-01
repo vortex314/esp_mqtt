@@ -4,6 +4,7 @@
 
 #include <unistd.h>
 #include <fcntl.h>
+static Mqtt* _me;
 //--------------------------------------------------------------------------------------------------------
 Mqtt::Mqtt(const char* name,uint32_t maxSize) : Actor(name),
     _host(40), _port(1883), _clientId(30), _user(20), _password(20), _willTopic(
@@ -11,6 +12,7 @@ Mqtt::Mqtt(const char* name,uint32_t maxSize) : Actor(name),
             20), _cleanSession(1), _msgid(0),_prefix(20),_topic(TOPIC_LENGTH),_message(maxSize)
 {
     _lastSrc=0;
+    _me=this;
 }
 //--------------------------------------------------------------------------------------------------------
 Mqtt::~Mqtt()
@@ -136,7 +138,7 @@ void Mqtt::callback(char* topic,byte* message,uint32_t length)
     INFO(" message arrived : [%s]",topic);
     Str tpc(topic);
     Str msg(message,length);
-    eb.event(H("mqtt"),H("published")).addKeyValue(H("topic"), tpc).addKeyValue(H("message"), msg); // TODO make H("mqtt") dynamic on name
+    eb.event(_me->id(),H("published")).addKeyValue(H("topic"), tpc).addKeyValue(H("message"), msg); // TODO make H("mqtt") dynamic on name
     eb.send();
 }
 //--------------------------------------------------------------------------------------------------------

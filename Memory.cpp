@@ -27,5 +27,8 @@ void Memory::onEvent(Cbor& msg)
     } else if ( eb.isRequest(H("get")) && msg.getKeyValue(H("address"),_address) ) {
         eb.reply().addKeyValue(H("address"),_address).addKeyValue(H("value"),*(uint32_t*)_address);
         eb.send();
+    } else {
+        eb.reply().addKeyValue(H("error"),EINVAL).addKeyValue(H("error-msg"),"invalid request");
+        eb.send();
     }
 };
