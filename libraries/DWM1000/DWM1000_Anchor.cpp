@@ -308,7 +308,7 @@ void DWM1000_Anchor::setup()
 //_________________________________________________INIT SPI ESP8266
 
     resetChip();
-    _spi.setClock(SPI_CLK_1MHZ);
+    _spi.setClock(100000);
     _spi.init();
     enableIsr();
     
@@ -333,7 +333,7 @@ while(true) {
     }
     INFO( " dwt_configure done." );
 
-    _spi.setClock(SPI_CLK_10MHZ);
+    _spi.setClock(1000000);
     _spi.init();
 
     uint32_t device_id = dwt_readdevid();

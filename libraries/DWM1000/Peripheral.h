@@ -30,23 +30,29 @@ public:
     void setInterruptHandler(InterruptFunction f,void* instance);
 };
 //---------------------------------------------- SPI
-#define SPI_CLK_1MHZ 1
-#define SPI_CLK_10MHZ 2
+#define SPI_MODE_PHASE0_POL0 0
+#define SPI_MODE_PHASE1_POL0 1
+#define SPI_MODE_PHASE0_POL1 2
+#define SPI_MODE_PHASE1_POL1 3
 
 class Spi
 {
     uint32_t _base;
     uint8_t _mode;
     uint32_t _clock;
-    bool lsbFirst;
+    uint32_t _spi_no;
+    bool _lsbFirst;
+    bool _hwSelect;
 public:
     Spi(uint32_t base);
     ~Spi();
+    bool busy();
     void setMode(uint32_t mode);
     void setClock(uint32_t hz);
     void setLsbFirst(bool lsbFirst);
+    void setHwSelect(bool hwSelect);
     void init();
-    void exchange(Bytes& in,Bytes& out);
+    Erc exchange(Bytes& in,Bytes& out);
 };
 
 #endif // SPI_H

@@ -65,11 +65,7 @@ void spi_set_hw_cs(bool use);
 void spi_cs_select();
 void spi_cs_deselect();
 void spi_clear();
-int writetospi(uint16 hLen, const uint8 *hbuff, uint32 bLen,
-		const uint8 *buffer);
-int readfromspi(uint16 hLen, const uint8 *hbuff, uint32 bLen, uint8 *buffer);
-void spi_set_rate_low();
-void spi_set_rate_high();
+
 //Expansion Macros
 #define spi_busy(spi_no) READ_PERI_REG(SPI_CMD(spi_no))&SPI_USR
 

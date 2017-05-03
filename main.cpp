@@ -23,6 +23,7 @@
 #include <DWM1000_Tag.h>
 #include <DWM1000_Anchor.h>
 #include <Memory.h>
+#include <SpiTester.h>
 
 uint32_t BAUDRATE = 115200;
 
@@ -85,6 +86,7 @@ MqttJson router("router",1024);
 DWM1000_Tag dwm1000Tag("TAG");
 DWM1000_Anchor dwm1000Anchor("ANCHOR");
 Memory memory("memory");
+SpiTester spiTester("spiTester");
 
 
 void setup()
@@ -133,6 +135,7 @@ void setup()
     mdns.setup();
     timer.setup();
     memory.setup();
+    spiTester.setup();
     if ( strcmp(Sys::hostname(),"ESP_15A281")!=0) {
 //        dwm1000Tag.setup();
         INFO("TAG started");
