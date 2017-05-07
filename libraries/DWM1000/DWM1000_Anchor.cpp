@@ -7,6 +7,7 @@
 
 #include <DWM1000_Anchor.h>
 #include <Log.h>
+#include <decaSpi.h>
 
 extern "C" {
 #include <spi.h>
@@ -30,7 +31,7 @@ static dwt_config_t config = {  //
     9, /* TX preamble code. Used in TX only. */
     9, /* RX preamble code. Used in RX only. */
     1, /* Use non-standard SFD (Boolean) */
-    DWT_BR_110K, /* Data rate. */
+    DWT_BR_6M8, /* Data rate. */
     DWT_PHRMODE_STD, /* PHY header mode. */
     (1025 + 64 - 32) /* SFD timeout (preamble length + 1 + SFD length - PAC size). Used in RX only. */
 };
@@ -65,17 +66,18 @@ static uint8 tx_resp_msg[] = { //
     0, 0
 };	// All messages end with a 2-byte checksum automatically set by DW1000.
 
-static uint8 rx_final_msg[] = { 0x41, 0x88,	// byte 0/1: frame control (0x8841 to indicate a data frame using 16-bit addressing).
-                                0, 			// byte 2: sequence number, incremented for each new frame.
-                                0xCA, 0xDE, // byte 3/4 : PAN ID (0xDECA)
-                                'W', 'A', 	// byte 5/6: destination address, see NOTE 3 below.
-                                'V', 'E',	// byte 7/8: source address, see NOTE 3 below.
-                                0x23, // byte 9: function code (specific values to indicate which message it is in the ranging process). [Final message]
-                                0, 0, 0, 0, // byte 10 -> 13: poll message transmission timestamp
-                                0, 0, 0, 0, // byte 14 -> 17: response message reception timestamp
-                                0, 0, 0, 0, // byte 18 -> 21: final message transmission timestamp.
-                                0, 0
-                              }; // All messages end with a 2-byte checksum automatically set by DW1000.
+static uint8 rx_final_msg[] = { //
+    0x41, 0x88,	// byte 0/1: frame control (0x8841 to indicate a data frame using 16-bit addressing).
+    0, 			// byte 2: sequence number, incremented for each new frame.
+    0xCA, 0xDE, // byte 3/4 : PAN ID (0xDECA)
+    'W', 'A', 	// byte 5/6: destination address, see NOTE 3 below.
+    'V', 'E',	// byte 7/8: source address, see NOTE 3 below.
+    0x23, // byte 9: function code (specific values to indicate which message it is in the ranging process). [Final message]
+    0, 0, 0, 0, // byte 10 -> 13: poll message transmission timestamp
+    0, 0, 0, 0, // byte 14 -> 17: response message reception timestamp
+    0, 0, 0, 0, // byte 18 -> 21: final message transmission timestamp.
+    0, 0
+}; // All messages end with a 2-byte checksum automatically set by DW1000.
 
 /* Length of the common part of the message (up to and including the function code, see NOTE 2 below). */
 #define ALL_MSG_COMMON_LEN 10
@@ -90,7 +92,7 @@ static uint8 frame_seq_nb = 0;
 
 /* Buffer to store received response message.
  * Its size is adjusted to longest frame that this example code is supposed to handle. */
-#define RX_BUF_LEN 24
+#define RX_BUF_LEN 32
 static uint8 rx_buffer[RX_BUF_LEN];
 
 /* Hold copy of status register state here for reference, so reader can examine it at a breakpoint. */
@@ -118,7 +120,7 @@ typedef unsigned long long uint64;
 /* Delay between frames, in UWB microseconds. See NOTE 4 below. */
 /* This is the delay from Frame RX timestamp to TX reply timestamp used for calculating/setting the DW1000's delayed TX function. This includes the
  * frame length of approximately 2.46 ms with above configuration. */
-#define POLL_RX_TO_RESP_TX_DLY_UUS 2600+2000
+#define POLL_RX_TO_RESP_TX_DLY_UUS 2600
 #define RESP_TX_TO_FINAL_RX_DLY_UUS 500 /* This is the delay from the end of the frame transmission to the enable of the receiver, as programmed for the DW1000's wait for response feature. */
 #define FINAL_RX_TIMEOUT_UUS 3300	/* Receive final timeout. See NOTE 5 below. */
 
@@ -145,7 +147,7 @@ static void final_msg_get_ts(const uint8 *ts_field, uint32 *ts);
 DWM1000_Anchor* DWM1000_Anchor::_anchor;
 
 DWM1000_Anchor::DWM1000_Anchor(const char* name) :
-    Actor(name),_spi(0),_irq(D2)
+    Actor(name),_spi(HSPI),_irq(D2)
 {
     _count = 0;
     _interrupts=0;
@@ -164,12 +166,15 @@ void DWM1000_Anchor::resetChip()
 {
     INFO( " Reset DWM1000_Anchor ");
     int pin = 5;	// RESET PIN == D1 == GPIO5
-    pinMode(pin, 1);// OUTPUT
+    pinMode(pin, OUTPUT);// OUTPUT
     digitalWrite(pin, 0);// PULL LOW
     os_delay_us(10000);// 10ms
     digitalWrite(pin, 1);// PUT HIGH
 }
 //_________________________________________________ IRQ handler
+
+uint64_t startIsr;
+uint64_t delta;
 
 bool isPollMsg()
 {
@@ -192,16 +197,18 @@ int sendRespMsg()
     /* Set send time for response. See NOTE 8 below. */
     resp_tx_time = (poll_rx_ts
                     + (POLL_RX_TO_RESP_TX_DLY_UUS * UUS_TO_DWT_TIME)) >> 8;
-    dwt_setdelayedtrxtime(resp_tx_time);
 
-    /* Set expected delay and timeout for final message reception. */
-    dwt_setrxaftertxdelay(RESP_TX_TO_FINAL_RX_DLY_UUS);
-    dwt_setrxtimeout(FINAL_RX_TIMEOUT_UUS);
 
     /* Write and send the response message. See NOTE 9 below.*/
     tx_resp_msg[ALL_MSG_SN_IDX] = frame_seq_nb;
     dwt_writetxdata(sizeof(tx_resp_msg), tx_resp_msg, 0);
     dwt_writetxfctrl(sizeof(tx_resp_msg), 0);
+    /* Set expected delay and timeout for final message reception. */
+    dwt_setdelayedtrxtime(resp_tx_time);
+    dwt_setrxaftertxdelay(RESP_TX_TO_FINAL_RX_DLY_UUS);
+    dwt_setrxtimeout(FINAL_RX_TIMEOUT_UUS);
+    
+    delta =  micros()-startIsr;
     if ( dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED) <0) {
         return -1;
     }
@@ -243,9 +250,12 @@ void calcFinalMsg()
 
 }
 
-void DWM1000_Anchor::my_dwt_isr()
-{
 
+
+void DWM1000_Anchor::my_dwt_isr()
+
+{
+    startIsr = micros();
     _anchor->interrupt_detected = true;
     _anchor->_interrupts++;
     status_reg = dwt_read32bitreg(SYS_STATUS_ID);
@@ -258,7 +268,7 @@ void DWM1000_Anchor::my_dwt_isr()
             }
             if (isPollMsg()) {
                 _anchor->_polls++;
-                if ( sendRespMsg() <0){
+                if ( sendRespMsg() <0) {
                     _anchor->_errs++;
                 }
                 frame_seq_nb++;
@@ -266,15 +276,18 @@ void DWM1000_Anchor::my_dwt_isr()
                 _anchor->_finals++;
                 calcFinalMsg();
             } else {
-//               _anchor->_errs++;
+                _anchor->_errs+=1000;
             }
         }  else if ( status_reg & SYS_STATUS_TXFRS ) {
             dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
+
         } else {
             /* Clear RX error events in the DW1000 status register. */
-//            _anchor->_errs++;
+            _anchor->_errs+= 1000000;
             dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR);
         }
+    } else {
+//        _anchor->_errs += 1000000;
     }
     dwt_setinterrupt(DWT_INT_RFCG, 1);	// enable
 }
@@ -304,25 +317,27 @@ void DWM1000_Anchor::enableIsr()
 
 void DWM1000_Anchor::setup()
 {
-    INFO("HSPI");
 //_________________________________________________INIT SPI ESP8266
 
     resetChip();
-    _spi.setClock(100000);
+    _spi.setClock(1000000);
+    _spi.setHwSelect(true);
+    _spi.setMode(SPI_MODE_PHASE1_POL0);
+    _spi.setLsbFirst(false);
     _spi.init();
+    spi_set_global(&_spi);
+    spi_set_rate_low();
     enableIsr();
-    
+    dwt_setpanid(0xDECA);
+    dwt_setaddress16(((uint16_t)'A'<<8)+'W');
 
-while(true) {
+
     uint64_t eui = 0xF1F2F3F4F5F6F7F;
     dwt_seteui((uint8_t*) &eui);
     dwt_geteui((uint8_t*) &eui);
     INFO(  "EUID : %llX", eui );
-    if ( eui == 0xF1F2F3F4F5F6F7F) break;
-
-//	dwt_softreset();
     deca_sleep(100);
-}
+
 
     while (dwt_initialise(DWT_LOADUCODE)) {
         INFO( " dwt_initialise failed " );
@@ -332,9 +347,7 @@ while(true) {
         INFO( " dwt_configure failed " );
     }
     INFO( " dwt_configure done." );
-
-    _spi.setClock(1000000);
-    _spi.init();
+    spi_set_rate_high();
 
     uint32_t device_id = dwt_readdevid();
     uint32_t part_id = dwt_getpartid();
@@ -378,7 +391,7 @@ WAIT_POLL: {
             dwt_setrxtimeout(0); /* Clear reception timeout to start next ranging process. */
             dwt_rxenable(0); /* Activate reception immediately. */
             dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_ERR | SYS_STATUS_ALL_TX);
-            dwt_setinterrupt(DWT_INT_RFCG | DWT_INT_RFSL | DWT_INT_RFCE | DWT_INT_RFTO | DWT_INT_TFRS, 1);	// enable
+            dwt_setinterrupt(DWT_INT_RFCG , 1);	// enable
             sys_mask = dwt_read32bitreg(SYS_MASK_ID);
             INFO(" SYS_MASK : %X ",sys_mask);
 
@@ -387,23 +400,25 @@ WAIT_POLL: {
 
             status_reg = dwt_read32bitreg(SYS_STATUS_ID);
             INFO( " SYS_STATUS : %X" , status_reg );
-            eb.event(id(),H("interrupts")).addKeyValue(H("$data"),_interrupts);
+            eb.event(id(),H("interrupts")).addKeyValue(H("$data"),_interrupts).addKeyValue(H("public"),true);;
             eb.send();
             bytes.map(rx_buffer,_frame_len);
-            eb.event(id(),H("poll")).addKeyValue(H("$data"),bytes);
+            eb.event(id(),H("poll")).addKeyValue(H("$data"),bytes).addKeyValue(H("public"),true);
             eb.send();
             bytes.map(tx_resp_msg,sizeof(tx_resp_msg));
-            eb.event(id(),H("resp")).addKeyValue(H("$data"),bytes);
+            eb.event(id(),H("resp")).addKeyValue(H("$data"),bytes).addKeyValue(H("public"),true);;
             eb.send();
-            eb.event(id(),H("distance")).addKeyValue(H("data"),distance);
+            eb.event(id(),H("distance")).addKeyValue(H("data"),distance).addKeyValue(H("public"),true);;
             eb.send();
-            eb.event(id(),H("finals")).addKeyValue(H("data"),_finals);
+            eb.event(id(),H("finals")).addKeyValue(H("data"),_finals).addKeyValue(H("public"),true);;
             eb.send();
-            eb.event(id(),H("polls")).addKeyValue(H("data"),_polls);
+            eb.event(id(),H("polls")).addKeyValue(H("data"),_polls).addKeyValue(H("public"),true);;
             eb.send();
-            eb.event(id(),H("errs")).addKeyValue(H("data"),_errs);
+            eb.event(id(),H("errs")).addKeyValue(H("data"),_errs).addKeyValue(H("public"),true);;
             eb.send();
-            eb.event(id(),H("poll_rx_ts")).addKeyValue(H("data"),poll_rx_ts);
+            eb.event(id(),H("delta")).addKeyValue(H("data"),delta).addKeyValue(H("public"),true);;
+            eb.send();
+            eb.event(id(),H("poll_rx_ts")).addKeyValue(H("data"),poll_rx_ts).addKeyValue(H("public"),true);;
             eb.send();
             _oldInterrupts=_interrupts;
 

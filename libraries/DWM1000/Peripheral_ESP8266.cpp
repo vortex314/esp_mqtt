@@ -4,7 +4,7 @@
 #include "Sys.h"
 //#include "Logger.h"
 
-#define CLOCK_80MHZ 80000000
+
 
 DigitalIn::DigitalIn(uint32_t pin)
 {
@@ -38,7 +38,9 @@ void DigitalIn::init()
     }
 }
 
+//=====================================  S P I =============================================
 
+#define CLOCK_80MHZ 80000000
 
 
 
@@ -49,6 +51,7 @@ Spi::Spi(uint32_t base)
     _clock = 1000000;
     _mode = SPI_MODE_PHASE0_POL0;
     _hwSelect = true;
+    _lsbFirst = false;
 }
 
 Spi::~Spi()
@@ -65,6 +68,11 @@ void Spi::setClock(uint32_t clock)
     _clock=clock;
 }
 
+void Spi::setLsbFirst(bool lsbFirst)
+{
+    _lsbFirst = lsbFirst;
+}
+
 
 void Spi::init()
 {
@@ -74,7 +82,7 @@ void Spi::init()
 //================== set GPIO
 
     uint32 clock_div_flag = 0;
-    if (_clock == 80000000 ) {
+    if (_clock == CLOCK_80MHZ ) {
         clock_div_flag = 0x0001;
     }
 
@@ -90,11 +98,19 @@ void Spi::init()
         PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTCK_U, 2); //GPIO13 is HSPI MOSI pin (Master Data Out)
         PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTMS_U, 2); //GPIO14 is HSPI CLK pin (Clock)
         PIN_FUNC_SELECT(PERIPHS_IO_MUX_MTDO_U, 2); //GPIO15 is HSPI CS pin (Chip Select / Slave Select)
+    };
+//======================= SPI_CTRL_REG  needs to be set before spi_clk otherwise fails
+
+    uint32_t spi_ctrl =0;
+    if ( _lsbFirst ) {
+        spi_ctrl += SPI_WR_BIT_ORDER | SPI_RD_BIT_ORDER;
     }
+    WRITE_PERI_REG(SPI_CTRL(_spi_no), spi_ctrl);
 //======================== SPI_CLOCK_REG
 
     uint32_t cntdiv = 8;
     uint32_t prediv =  ( CLOCK_80MHZ / cntdiv ) / _clock;
+    DEBUG(" reg : %X clock : %d cntdiv : %d predic : %d ",SPI_CLOCK(_spi_no),_clock,cntdiv,prediv);
     if (_clock == CLOCK_80MHZ) {
         WRITE_PERI_REG(SPI_CLOCK(_spi_no), SPI_CLK_EQU_SYSCLK);
     } else {
@@ -105,25 +121,12 @@ void Spi::init()
                        | (((cntdiv-1)&SPI_CLKCNT_L)<<SPI_CLKCNT_L_S)//
                       );
     }
-//======================= SPI_CTRL_REG
+    INFO(" SPI_CLOCK 0x%08X",READ_PERI_REG(SPI_CLOCK(_spi_no)));
 
-    uint32_t spi_ctrl =0;
-    spi_ctrl += SPI_WR_BIT_ORDER | SPI_RD_BIT_ORDER;
-    WRITE_PERI_REG(SPI_CTRL(_spi_no), spi_ctrl);
-//======================= SPI_CTRL2_REG
-
-    uint32_t spi_ctrl2=0;
-    spi_ctrl2 += ( 2 << SPI_MOSI_DELAY_MODE_S );    // mode 0 and clock below 80MHZ, see ESP32
-    if ( _mode == SPI_MODE_PHASE0_POL1 || _mode==SPI_MODE_PHASE1_POL1) {
-        spi_ctrl2 += SPI_CK_OUT_HIGH_MODE << SPI_CK_OUT_HIGH_MODE_S ;
-    } else {
-        spi_ctrl2 += SPI_CK_OUT_LOW_MODE << SPI_CK_OUT_LOW_MODE_S;
-    };
-    WRITE_PERI_REG(SPI_CTRL2(_spi_no), spi_ctrl2);
 //======================= SPI_USER
 
     uint32_t spi_user=0;            //======= phase
-    if (_mode == SPI_MODE_PHASE0_POL0 || _mode==SPI_MODE_PHASE0_POL1) {
+    if (_mode == SPI_MODE_PHASE1_POL0 || _mode==SPI_MODE_PHASE0_POL1) {
         spi_user += SPI_CK_OUT_EDGE ;
     }
     if ( _hwSelect ) {
@@ -133,26 +136,44 @@ void Spi::init()
         pinMode(15, OUTPUT);
     }
     spi_user += SPI_USR_MOSI | SPI_DOUTDIN; // out & in at the same time
-    WRITE_PERI_REG(SPI_USER(_spi_no), spi_user);
 //    spi_user += SPI_WR_BYTE_ORDER | SPI_RD_BYTE_ORDER; // big endian
+    WRITE_PERI_REG(SPI_USER(_spi_no), spi_user);
+
+
+//======================= SPI_CTRL2_REG needs to be set after SPI_USER
+
+
+    uint32_t spi_ctrl2=0;
+//    spi_ctrl2 += ( 2 << SPI_MOSI_DELAY_MODE_S );    // mode 0 and clock below 80MHZ, see ESP32
+        spi_ctrl2 += SPI_CK_OUT_HIGH_MODE << SPI_CK_OUT_HIGH_MODE_S ;
+    if ( _mode == SPI_MODE_PHASE0_POL1 || _mode==SPI_MODE_PHASE1_POL1) {
+        spi_ctrl2 += SPI_CK_OUT_HIGH_MODE << SPI_CK_OUT_HIGH_MODE_S ;
+    } else {
+        spi_ctrl2 += SPI_CK_OUT_LOW_MODE << SPI_CK_OUT_LOW_MODE_S;
+    };
+    spi_ctrl2 += (2 << SPI_MISO_DELAY_MODE_S); // add delay for going trough mux , see ESP32 ref manual
+    WRITE_PERI_REG(SPI_CTRL2(_spi_no), spi_ctrl2);
+//================================= SPI_USER2
     uint32_t spi_user2=0;
     WRITE_PERI_REG(SPI_USER2(_spi_no), spi_user2);
+
 //================================= SPI_PIN
 
     uint32_t spi_pin=0;
-    if (_mode == SPI_MODE_PHASE0_POL1 || _mode==SPI_MODE_PHASE1_POL0) {
+    if (_mode == SPI_MODE_PHASE0_POL1 || _mode==SPI_MODE_PHASE1_POL1) {
         spi_pin += SPI_IDLE_EDGE ;
-        spi_pin += SPI_CS2_DIS | SPI_CS1_DIS;
     }
+    spi_pin += SPI_CS2_DIS | SPI_CS1_DIS;
+    WRITE_PERI_REG(SPI_PIN(_spi_no), spi_pin);
 //=================================
 
-    INFO(" SPI_CTRL  0x%08X",READ_PERI_REG(SPI_CTRL(HSPI)));
-    INFO(" SPI_CTRL1 0x%08X",READ_PERI_REG(SPI_CTRL1(HSPI)));
-    INFO(" SPI_CTRL2 0x%08X",READ_PERI_REG(SPI_CTRL2(HSPI)));
-    INFO(" SPI_CLOCK 0x%08X",READ_PERI_REG(SPI_CLOCK(HSPI)));
-    INFO(" SPI_USER  0x%08X",READ_PERI_REG(SPI_USER(HSPI)));
-    INFO(" SPI_USER1  0x%08X",READ_PERI_REG(SPI_USER1(HSPI)));
-    INFO(" SPI_USER2  0x%08X",READ_PERI_REG(SPI_USER2(HSPI)));
+    INFO(" SPI_CTRL  0x%08X",READ_PERI_REG(SPI_CTRL(_spi_no)));
+    INFO(" SPI_CTRL1 0x%08X",READ_PERI_REG(SPI_CTRL1(_spi_no)));
+    INFO(" SPI_CTRL2 0x%08X",READ_PERI_REG(SPI_CTRL2(_spi_no)));
+    INFO(" SPI_CLOCK 0x%08X",READ_PERI_REG(SPI_CLOCK(_spi_no)));
+    INFO(" SPI_USER  0x%08X",READ_PERI_REG(SPI_USER(_spi_no)));
+    INFO(" SPI_USER1  0x%08X",READ_PERI_REG(SPI_USER1(_spi_no)));
+    INFO(" SPI_USER2  0x%08X",READ_PERI_REG(SPI_USER2(_spi_no)));
 }
 
 void Spi::setHwSelect(bool select)
@@ -174,26 +195,25 @@ void bytesToWords(uint32_t* pW, Bytes& out)
 {
     union {
         uint32_t word;
-        uint8_t bytes[4];
+        uint8_t bytes[4]; // little endian b[3] = MSB
     };
     uint32_t byteIndex=0;
-    uint32_t wordIndex=0;
-    uint32_t index=0;
 
     out.offset(0);
     word=0;
     while(out.hasData()) {
-        word = word << 8;
-        word += out.read();
+        bytes[byteIndex] = out.read();
         byteIndex++;
         if ( byteIndex %4 == 0 ) {
+            byteIndex=0;
             *pW = word;
-            wordIndex++;
-            word=0;
             pW++;
         }
     }
-    *pW= word;
+    if ( byteIndex ) { // some bytes to left align
+        *pW= word;
+    }
+//    INFO(" last word : %X ",word);
 }
 //////////////////////////////////////////////////////////////////////////////////
 //
@@ -209,11 +229,12 @@ void wordsToBytes(uint32_t* pW, Bytes& in, uint32_t length)
     uint32_t byteIndex=0;
     word= *pW;
     while(length) {
-        in.write(word & 0xFF);
-        word = word>> 8;
+        in.write(bytes[byteIndex]);
         byteIndex++;
         if ( byteIndex %4 == 0 ) {
+            pW++;
             word = *pW;
+            byteIndex=0;
         }
         length--;
     }
@@ -226,14 +247,17 @@ Erc Spi::exchange(Bytes& in,Bytes& out)
         uint8_t b[4];
     } word;
     if (out.length() >64) {
-        WARN("SPI Buffer to big !")
+        WARN("SPI Buffer too big !")
         return ENOSPC;
     }
 // wait ready
     while(busy());
 // write data to buffer
     bytesToWords((uint32_t*)SPI_W0(_spi_no),out);
-    WRITE_PERI_REG(SPI_USER1(_spi_no), ((out.length()*8)-1) << SPI_USR_MOSI_BITLEN_S); // bit length
+    uint32_t spi_user1=0;
+    spi_user1 = ((out.length()*8)-1) << SPI_USR_MOSI_BITLEN_S;
+//    spi_user1 += 1 << SPI_USR_ADDR_BITLEN_S;
+    WRITE_PERI_REG(SPI_USER1(_spi_no), spi_user1); // bit length
 // trigger start
     SET_PERI_REG_MASK(SPI_CMD(_spi_no), SPI_USR);
 // wait finish
@@ -243,138 +267,3 @@ Erc Spi::exchange(Bytes& in,Bytes& out)
     wordsToBytes((uint32_t*)SPI_W0(_spi_no),in,out.length());
     return E_OK;
 }
-
-void spi_cs_select()
-{
-    digitalWrite(15, 0);
-}
-
-void spi_cs_deselect()
-{
-    digitalWrite(15, 1);
-}
-
-
-
-void spi_set_rate_low_old()
-{
-    spi_clock(HSPI, SPI_CLK_PREDIV, 20);
-}
-//////////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-/////////////////////////////////////////////////////////////////////////////////
-void spi_set_rate_high_old()
-{
-    spi_clock(HSPI, SPI_CLK_PREDIV, SPI_CLK_CNTDIV);
-}
-
-/*//////////////////////////////////////////////////////////////////////////////*/
-/*	uint32_t din_bits = hLen * 8;
- uint32_t dout_bits = bLen * 8;
-
- while (spi_busy(HSPI))
- ; //wait for SPI to be ready
-
- //########## Enable SPI Functions ##########//
- //disable MOSI, MISO, ADDR, COMMAND, DUMMY in case previously set.
- CLEAR_PERI_REG_MASK(SPI_USER(HSPI),
- SPI_USR_MOSI|SPI_USR_MISO|SPI_USR_COMMAND|SPI_USR_ADDR|SPI_USR_DUMMY);
- SET_PERI_REG_MASK(SPI_USER(HSPI), SPI_DOUTDIN); // LMR set full duplex
- SET_PERI_REG_MASK(SPI_USER(HSPI), SPI_USR_MISO); //enable MISO function in SPI module
- SET_PERI_REG_MASK(SPI_USER(HSPI), SPI_USR_MOSI); //enable MOSI function in SPI module
-
- //########## Setup Bitlengths ##########//
- WRITE_PERI_REG(SPI_USER1(HSPI),
- ((dout_bits-1)&SPI_USR_MOSI_BITLEN)<<SPI_USR_MOSI_BITLEN_S | //Number of bits to Send
- ((din_bits-1)&SPI_USR_MISO_BITLEN)<<SPI_USR_MISO_BITLEN_S);//Number of bits to receive
-
- //########## Setup DOUT data ##########//
- if (dout_bits) {
- //copy data to W0
- uint32_t offset = bytesToWord(SPI_W0(HSPI), hbuff, hLen);
- bytesToWord(SPI_W0(HSPI), buffer,bLen);
- }
-
- SET_PERI_REG_MASK(SPI_CMD(HSPI), SPI_USR); //########## Begin SPI Transaction ##########//
-
- //########## Return DIN data ##########//
- wordsToBytes(SPI_W0(HSPI),);
- if (din_bits) {
- while (spi_busy(HSPI))
- ;	//wait for SPI transaction to complete
-
- if (READ_PERI_REG(SPI_USER(HSPI)) & SPI_RD_BYTE_ORDER) {
- return READ_PERI_REG(SPI_W0(HSPI)) >> (32 - din_bits); //Assuming data in is written to MSB. TBC
- } else {
- return READ_PERI_REG(SPI_W0(HSPI)); //Read in the same way as DOUT is sent. Note existing contents of SPI_W0 remain unless overwritten!
- }
- }*/
-
-
-//////////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-/////////////////////////////////////////////////////////////////////////////////
-extern "C" int writetospi(uint16 hLen, const uint8 *hbuff, uint32 bLen,
-                          const uint8 *buffer)
-{
-/*    if ( (hLen+bLen) > 64 ) {
-        INFO("SPI write buffer too big %d %d ",hLen,bLen);
-        return -1;
-    }
-    digitalWrite(15, 0);
-    memcpy(o._spi_out,hbuff,hLen);
-    memcpy(&o._spi_out[hLen],buffer,bLen);
-    __spi.transferBytes(o._spi_out,i._spi_in,hLen+bLen);
-    digitalWrite(15, 1);
-    return 0;*/
-}
-//////////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-/////////////////////////////////////////////////////////////////////////////////
-
-extern "C" int readfromspi(uint16 hLen, const uint8 *hbuff, uint32 bLen, uint8 *buffer)
-{
-/*    if ( (hLen+bLen) > 64 ) {
-        INFO("SPI read buffer too big %d %d ",hLen,bLen);
-        return -1;
-    }
-    digitalWrite(15, 0);
-    memcpy(o._spi_out,hbuff,hLen);
-    memcpy(&o._spi_out[hLen],buffer,bLen);
-    __spi.transferBytes(o._spi_out,i._spi_in,hLen+bLen);
-    memcpy(buffer,&i._spi_in[hLen],bLen);
-    digitalWrite(15, 1);
-    return 0; */
-}
-//////////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-/////////////////////////////////////////////////////////////////////////////////
-extern "C" void spi_set_rate_low()
-{
-//    __spi.setFrequency(400000);
-}
-//////////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-/////////////////////////////////////////////////////////////////////////////////
-extern "C" void spi_set_rate_high()
-{
-//   __spi.setFrequency(1000000);
-}
-
-/*
-int writetospi(uint16 hLen, const uint8 *hbuff, uint32 bLen,
-		const uint8 *buffer);
-int readfromspi(uint16 hLen, const uint8 *hbuff, uint32 bLen, uint8 *buffer);
-void spi_set_rate_low();
-void spi_set_rate_high();
-*/

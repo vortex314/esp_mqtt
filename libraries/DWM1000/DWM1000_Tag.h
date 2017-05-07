@@ -17,6 +17,7 @@ class DWM1000_Tag: public Actor
     Spi _spi;
     static DWM1000_Tag* _tag;
     uint32_t _interrupts;
+    uint32_t _polls;
     bool interrupt_detected;
     uint32_t _resps;
     uint32_t _frame_len;

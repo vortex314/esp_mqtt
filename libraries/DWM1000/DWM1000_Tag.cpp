@@ -8,6 +8,7 @@
 #include <DWM1000_Tag.h>
 #include <Log.h>
 #include <Gpio.h>
+#include <decaSpi.h>
 
 extern "C" {
 #include <spi.h>
@@ -32,7 +33,7 @@ static dwt_config_t config = {  //
     9, /* TX preamble code. Used in TX only. */
     9, /* RX preamble code. Used in RX only. */
     1, /* Use non-standard SFD (Boolean) */
-    DWT_BR_110K, /* Data rate. */
+    DWT_BR_6M8, /* Data rate. DWT_BR_110K */
     DWT_PHRMODE_STD, /* PHY header mode. */
     (1025 + 64 - 32) /* SFD timeout (preamble length + 1 + SFD length - PAC size). Used in RX only. */
 };
@@ -65,17 +66,18 @@ static uint8 rx_resp_msg[] = { //
     0, 0
 };	// All messages end with a 2-byte checksum automatically set by DW1000.
 
-static uint8 tx_final_msg[] = { 0x41, 0x88,	// byte 0/1: frame control (0x8841 to indicate a data frame using 16-bit addressing).
-                                0, 			// byte 2: sequence number, incremented for each new frame.
-                                0xCA, 0xDE, // byte 3/4 : PAN ID (0xDECA)
-                                'W', 'A', 	// byte 5/6: destination address, see NOTE 3 below.
-                                'V', 'E',	// byte 7/8: source address, see NOTE 3 below.
-                                0x23, // byte 9: function code (specific values to indicate which message it is in the ranging process). [Final message]
-                                0, 0, 0, 0, // byte 10 -> 13: poll message transmission timestamp
-                                0, 0, 0, 0, // byte 14 -> 17: response message reception timestamp
-                                0, 0, 0, 0, // byte 18 -> 21: final message transmission timestamp.
-                                0, 0
-                              }; // All messages end with a 2-byte checksum automatically set by DW1000.
+static uint8 tx_final_msg[] = {  //
+    0x41, 0x88,	// byte 0/1: frame control (0x8841 to indicate a data frame using 16-bit addressing).
+    0, 			// byte 2: sequence number, incremented for each new frame.
+    0xCA, 0xDE, // byte 3/4 : PAN ID (0xDECA)
+    'W', 'A', 	// byte 5/6: destination address, see NOTE 3 below.
+    'V', 'E',	// byte 7/8: source address, see NOTE 3 below.
+    0x23, // byte 9: function code (specific values to indicate which message it is in the ranging process). [Final message]
+    0, 0, 0, 0, // byte 10 -> 13: poll message transmission timestamp
+    0, 0, 0, 0, // byte 14 -> 17: response message reception timestamp
+    0, 0, 0, 0, // byte 18 -> 21: final message transmission timestamp.
+    0, 0
+}; // All messages end with a 2-byte checksum automatically set by DW1000.
 
 /* Length of the common part of the message (up to and including the function code, see NOTE 2 below). */
 #define ALL_MSG_COMMON_LEN 10
@@ -130,6 +132,7 @@ DWM1000_Tag::DWM1000_Tag(const char* name) :
     _tag=this;
     _interrupts=0;
     _resps=0;
+    _polls=0;
 }
 
 DWM1000_Tag::~DWM1000_Tag()
@@ -246,24 +249,28 @@ void DWM1000_Tag::enableIsr()
 
 void DWM1000_Tag::setup()
 {
-    INFO("HSPI");
 //_________________________________________________INIT SPI ESP8266
 
     resetChip();
-    _spi.setClock(100000);
+    _spi.setClock(1000000);
+    _spi.setHwSelect(true);
+    _spi.setMode(SPI_MODE_PHASE1_POL0);
+    _spi.setLsbFirst(false);
     _spi.init();
+    spi_set_global(&_spi);  // to support deca spi routines
+    spi_set_rate_low();
+    
     enableIsr();
+//    dwt_setpanid(0xDECA);
+//    dwt_setaddress16(((uint16_t)'E'<<8)+'V');
 
-    uint64_t eui = 0xF1F2F3F4F5F6F7F;
+    uint64_t eui = 0xDEADBEEFDEADBEEF;
     dwt_seteui((uint8_t*) &eui);
     dwt_geteui((uint8_t*) &eui);
-    INFO(  "EUID : %llX ", eui );
-    dwt_seteui((uint8_t*) &eui);
-    dwt_geteui((uint8_t*) &eui);
-    INFO(  "EUID : %llX", eui );
+    INFO(  "EUID : %llX ", eui );   // just test SPI interface with DWM1000
 
 //	dwt_softreset();
-    deca_sleep(100);
+//    deca_sleep(100);
 
     while (dwt_initialise(DWT_LOADUCODE)) {
         INFO( " dwt_initialise failed " );
@@ -273,12 +280,15 @@ void DWM1000_Tag::setup()
         INFO( " dwt_configure failed " );
     }
     INFO( " dwt_configure done." );
-
-    _spi.setClock(10000000);
-    _spi.init();
+    
+    spi_set_rate_high();
 
     uint32_t device_id = dwt_readdevid();
-    INFO( " device id : %X" , device_id );
+    uint32_t part_id = dwt_getpartid();
+    uint32_t lot_id = dwt_getlotid();
+
+    INFO( " device id : %X , part id : %X , lot_id : %X"
+          , device_id , part_id , lot_id );
 
     dwt_setrxantennadelay(RX_ANT_DLY); /* Apply default antenna delay value. See NOTE 1 below. */
     dwt_settxantennadelay(TX_ANT_DLY);
@@ -304,17 +314,21 @@ POLL_SEND: {
         while (true) {
 
             /* Write frame data to DW1000 and prepare transmission. See NOTE 7 below. */
+            _polls++;
             tx_poll_msg[ALL_MSG_SN_IDX] = frame_seq_nb++;
             dwt_writetxdata(sizeof(tx_poll_msg), tx_poll_msg, 0);
             dwt_writetxfctrl(sizeof(tx_poll_msg), 0);
+            dwt_setrxaftertxdelay(POLL_TX_TO_RESP_RX_DLY_UUS);
+            dwt_setrxtimeout(RESP_RX_TIMEOUT_UUS);
 
 
             /* Start transmission, indicating that a response is expected so that reception is enabled automatically after the frame is sent and the delay
              * set by dwt_setrxaftertxdelay() has elapsed. */
             INFO( " Start TXF " );
-            dwt_setinterrupt(DWT_INT_TFRS, 0);
-            dwt_setinterrupt(DWT_INT_RFCG, 1);	// enable
             dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_ERR | SYS_STATUS_ALL_TX); // Clear RX error events in the DW1000 status register.
+//           dwt_setinterrupt(DWT_INT_TFRS, 0);
+            dwt_setinterrupt(DWT_INT_RFCG, 1);	// enable
+            dwt_rxenable(1);
             dwt_starttx(DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED);				// SEND POLL MSG
             _timeoutCounter = 0;
             status_reg = dwt_read32bitreg(SYS_STATUS_ID);
@@ -323,17 +337,20 @@ POLL_SEND: {
 
             /* We assume that the transmission is achieved correctly, poll for reception of a frame or error/timeout. See NOTE 8 below. */
             timeout(1000);
-            PT_YIELD_UNTIL(timeout() );							// WAIT RESP MSG
+            clearInterrupt();
+            PT_YIELD_UNTIL(timeout() || isInterruptDetected());							// WAIT RESP MSG
 
             bytes.map(tx_poll_msg,sizeof(tx_poll_msg));
-            eb.event(id(),H("poll")).addKeyValue(H("$data"),bytes);
+            eb.event(id(),H("poll")).addKeyValue(H("$data"),bytes).addKeyValue(H("public"),true);;
             eb.send();
-            eb.event(id(),H("interrupts")).addKeyValue(H("$data"),_interrupts);
+            eb.event(id(),H("interrupts")).addKeyValue(H("$data"),_interrupts).addKeyValue(H("public"),true);;
             eb.send();
-            Bytes bytes(rx_buffer,_frame_len);
-            eb.event(id(),H("rxd")).addKeyValue(H("$data"),bytes);
+            bytes.map(rx_buffer,_frame_len);
+            eb.event(id(),H("rxd")).addKeyValue(H("$data"),bytes).addKeyValue(H("public"),true);;
             eb.send();
-            eb.event(id(),H("resps")).addKeyValue(H("data"),_resps);
+            eb.event(id(),H("resps")).addKeyValue(H("data"),_resps).addKeyValue(H("public"),true);;
+            eb.send();
+            eb.event(id(),H("polls")).addKeyValue(H("data"),_polls).addKeyValue(H("public"),true);;
             eb.send();
             status_reg = dwt_read32bitreg(SYS_STATUS_ID);
 
@@ -341,99 +358,8 @@ POLL_SEND: {
             if ( status_reg ==0xDEADDEAD ) setup();
 //            dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR); // Clear RX error events in the DW1000 status register.
             dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_ERR | SYS_STATUS_ALL_TX);
-
-            /*
-                        status_reg = dwt_read32bitreg(SYS_STATUS_ID);
-                        INFO( " SYS_STATUS : %X" , status_reg );
-                        if (status_reg == 0xDEADDEAD) {
-                            init();
-                        } else if (status_reg & SYS_STATUS_RXFCG) {
-                            // goto RESP_RECEIVED;
-                        }
-
-                        else if (status_reg & SYS_STATUS_ALL_RX_ERR) {
-
-                            if (status_reg & SYS_STATUS_RXRFTO) {
-                                INFO(" RX Timeout");
-                            } else {
-                                INFO(" RX error ");
-                            }
-                        }
-                        dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_ALL_RX_ERR); // Clear RX error events in the DW1000 status register.
-            */
         }
     }
-
-RESP_RECEIVED: {
-
-        INFO( " Received " );
-
-        frame_seq_nb++; /* Increment frame sequence number after transmission of the poll message (modulo 256). */
-        uint32 frame_len;
-
-        /* Clear good RX frame event and TX frame sent in the DW1000 status register. */
-        dwt_write32bitreg(SYS_STATUS_ID,
-                          SYS_STATUS_RXFCG | SYS_STATUS_TXFRS);
-
-        /* A frame has been received, read iCHANGEt into the local buffer. */
-        frame_len =
-            dwt_read32bitreg(RX_FINFO_ID) & RX_FINFO_RXFLEN_MASK;
-        if (frame_len <= RX_BUF_LEN) {
-            dwt_readrxdata(rx_buffer, frame_len, 0);
-            Bytes bytes(rx_buffer,frame_len);
-            eb.event(id(),H("rxd")).addKeyValue(H("$data"),bytes);
-            eb.send();
-        }
-
-        /* Check that the frame is the expected response from the companion "DS TWR responder" example.
-         * As the sequence number field of the frame is not relevant, it is cleared to simplify the validation of the frame. */
-        rx_buffer[ALL_MSG_SN_IDX] = 0;
-        if (memcmp(rx_buffer, rx_resp_msg, ALL_MSG_COMMON_LEN) == 0) {		// CHECK RESP MSG
-            uint32 final_tx_time;
-
-            /* Retrieve poll transmission and response reception timestamp. */
-            poll_tx_ts = get_tx_timestamp_u64();
-            resp_rx_ts = get_rx_timestamp_u64();
-
-            /* Compute final message transmission time. See NOTE 9 below. */
-            final_tx_time = (resp_rx_ts
-                             + (RESP_RX_TO_FINAL_TX_DLY_UUS * UUS_TO_DWT_TIME))
-                            >> 8;
-            dwt_setdelayedtrxtime(final_tx_time);
-
-            /* Final TX timestamp is the transmission time we programmed plus the TX antenna delay. */
-            final_tx_ts = (((uint64) (final_tx_time & 0xFFFFFFFE)) << 8)
-                          + TX_ANT_DLY;
-
-            /* Write all timestamps in the final message. See NOTE 10 below. */
-            final_msg_set_ts(&tx_final_msg[FINAL_MSG_POLL_TX_TS_IDX],
-                             poll_tx_ts);
-            final_msg_set_ts(&tx_final_msg[FINAL_MSG_RESP_RX_TS_IDX],
-                             resp_rx_ts);
-            final_msg_set_ts(&tx_final_msg[FINAL_MSG_FINAL_TX_TS_IDX],
-                             final_tx_ts);
-
-            /* Write and send final message. See NOTE 7 below. */
-            tx_final_msg[ALL_MSG_SN_IDX] = frame_seq_nb;
-            dwt_writetxdata(sizeof(tx_final_msg), tx_final_msg, 0);
-            dwt_writetxfctrl(sizeof(tx_final_msg), 0);
-            dwt_starttx(DWT_START_TX_DELAYED);							// SEND FINAL MSG
-
-            /* Poll DW1000 until TX frame sent event set. See NOTE 8 below. */
-            timeout(10);
-            PT_YIELD_UNTIL((dwt_read32bitreg(SYS_STATUS_ID) & SYS_STATUS_TXFRS) || timeout());;
-            /* Clear TXFRS event. */
-            dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
-
-            /* Increment frame sequence number after transmission of the final message (modulo 256). */
-            frame_seq_nb++;
-        } else {
-            INFO(" not expected response ");
-        }
-//			deca_sleep(RNG_DELAY_MS);
-    }
-    goto POLL_SEND;
-
     PT_END()
     ;
 }

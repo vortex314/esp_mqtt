@@ -24,6 +24,7 @@
 #include <DWM1000_Anchor.h>
 #include <Memory.h>
 #include <SpiTester.h>
+#include <IrqTester.h>
 
 uint32_t BAUDRATE = 115200;
 
@@ -86,7 +87,8 @@ MqttJson router("router",1024);
 DWM1000_Tag dwm1000Tag("TAG");
 DWM1000_Anchor dwm1000Anchor("ANCHOR");
 Memory memory("memory");
-SpiTester spiTester("spiTester");
+//SpiTester spiTester("spiTester");
+//IrqTester irqTester("irqTester");
 
 
 void setup()
@@ -123,9 +125,9 @@ void setup()
         DEBUG("%s",str.c_str());
     });
 
- /*   eb.onEvent(systm.id(),EB_UID_IGNORE).call([](Cbor& msg) { // PUBLISH system events
-        router.ebToMqtt(msg);
-    }); */
+    /*   eb.onEvent(systm.id(),EB_UID_IGNORE).call([](Cbor& msg) { // PUBLISH system events
+           router.ebToMqtt(msg);
+       }); */
 
     uid.add(labels,LABEL_COUNT);
     led.setMqtt(mqtt.id());
@@ -135,15 +137,17 @@ void setup()
     mdns.setup();
     timer.setup();
     memory.setup();
-    spiTester.setup();
-    if ( strcmp(Sys::hostname(),"ESP_15A281")!=0) {
-//        dwm1000Tag.setup();
-        INFO("TAG started");
-    } else {
- //       dwm1000Anchor.setup();
+//    spiTester.setup();
+//    irqTester.setup();
+    if ( strcmp(Sys::hostname(),"ESPCF5241")!=0) {
+        dwm1000Anchor.setup();
         INFO("ANCHOR started");
+
+    } else {
+        dwm1000Tag.setup();
+        INFO("TAG started");
     }
-    
+
 
     mqtt.setup();
     router.setMqttId(mqtt.id());
