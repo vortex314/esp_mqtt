@@ -337,8 +337,7 @@ POLL_SEND: {
 
             /* We assume that the transmission is achieved correctly, poll for reception of a frame or error/timeout. See NOTE 8 below. */
             timeout(1000);
-            clearInterrupt();
-            PT_YIELD_UNTIL(timeout() || isInterruptDetected());							// WAIT RESP MSG
+            PT_YIELD_UNTIL(timeout() );							// WAIT RESP MSG
 
             bytes.map(tx_poll_msg,sizeof(tx_poll_msg));
             eb.event(id(),H("poll")).addKeyValue(H("$data"),bytes).addKeyValue(H("public"),true);;
