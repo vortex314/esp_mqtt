@@ -12,16 +12,16 @@
 #define EEPROM_SIZE 512
 #define EEPROM_MAGIC 0xDEADBEEF
 
-ConfigClass::ConfigClass() {
+Config::Config() {
 
 }
 
-ConfigClass::~ConfigClass() { 
+Config::~Config() { 
 
 }
 
 
-void ConfigClass::initMagic() {
+void Config::initMagic() {
 	uint32_t word = EEPROM_MAGIC;
 	for (int i = 0; i < 4; i++) {
 		EEPROM.write(i, (uint8_t) (word & 0xFF));
@@ -29,7 +29,7 @@ void ConfigClass::initMagic() {
 	}
 }
 
-bool ConfigClass::checkMagic() {
+bool Config::checkMagic() {
 	uint32_t word = 0;
 	uint32_t i = 3;
 	while (true) {
@@ -44,7 +44,7 @@ bool ConfigClass::checkMagic() {
 	return false;
 }
 
-void ConfigClass::load(Cbor& cbor) {
+void Config::load(Cbor& cbor) {
 	EEPROM.begin(EEPROM_SIZE);
 	if (!checkMagic()) {
 		DEBUG(" initialize EEPROM with empty config.");
@@ -67,7 +67,7 @@ void ConfigClass::load(Cbor& cbor) {
 //	DEBUG(str.c_str());
 }
 
-void ConfigClass::save(Cbor& cbor) {
+void Config::save(Cbor& cbor) {
 //	DEBUG(str.c_str());
 	EEPROM.begin(EEPROM_SIZE);
 	int address = 4;
@@ -80,13 +80,13 @@ void ConfigClass::save(Cbor& cbor) {
 
 }
 
-void ConfigClass::set(const char* key, String& value) {
+void Config::set(const char* key, String& value) {
 	Cbor input(200);
 	load(input);
 //	DEBUG(" input :%s",input.c_str());
 	int id=H(key);
 	Cbor output(input.length()+40);
-/*	StaticJsonBuffer<400> jsonConf;
+	StaticJsonBuffer<400> jsonConf;
 	JsonObject& object = jsonConf.parseObject(input);
 	object[key] = value;
 	String output;
@@ -96,23 +96,23 @@ void ConfigClass::set(const char* key, String& value) {
 
 }
 
-void ConfigClass::get(const char* key, String& value,
+void Config::get(const char* key, String& value,
 		const char* defaultValue) {
 	String input;
 	load(input);
 //	DEBUG(" input :%s",input.c_str());
-/*	StaticJsonBuffer<400> jsonConf;
+	StaticJsonBuffer<400> jsonConf;
 	JsonObject& object = jsonConf.parseObject(input);
 	if (object.containsKey(key))
 		value = (const char*) object[key];
 	else {
 		value = defaultValue;
 		set(key,value);
-	}*/
+	}
 }
 
-void ConfigClass::set(const char* key, uint32_t& value) {
-/*	String input;
+void Config::set(const char* key, uint32_t& value) {
+	String input;
 	load(input);
 //	DEBUG(" input :%s",input.c_str());
 	StaticJsonBuffer<400> jsonConf;
@@ -122,12 +122,12 @@ void ConfigClass::set(const char* key, uint32_t& value) {
 	object.printTo(output);
 	save(output);
 //	DEBUG(" output :%s",output.c_str());
-*/
+
 }
 
-void ConfigClass::get(const char* key, uint32_t& value,
+void Config::get(const char* key, uint32_t& value,
 		uint32_t defaultValue) {
-/*	String input;
+	String input;
 	load(input);
 //	DEBUG(" input :%s",input.c_str());
 	StaticJsonBuffer<400> jsonConf;
@@ -137,7 +137,7 @@ void ConfigClass::get(const char* key, uint32_t& value,
 	else{
 		value = defaultValue;
 		set(key,value);
-	}*/
+	}
 }
 
-ConfigClass Config;
+Config Config;

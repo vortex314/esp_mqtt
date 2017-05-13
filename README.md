@@ -35,3 +35,40 @@ The following investigations tooks weeks to complete and make it work.
 - The examples provided by DWM1000 documentation, suppose that the message is handled in 150 micro sec. While this is nowhere stated. The example transmits at 115kb, which leads to 2.4 msec frame duration, the reply time for the anchor is 2.6 msec. The ESP8266 took 450 microsec to respond. So exceeding the reponse time, which make sthat the polling response is never send. When changing to 850KB the issue is gone. Pffff
 The Sample provided by Decawave should provide a word of warning.
 Still don't understand why the DW1000 is not SPI mode 0. While according to the doc it should be. 
+
+## configuration parameters
+As the device is intended for generic use , the parameters can be set at boot up time via serial port or via the mqtt protocol, once the mqtt config is established 
+
+- wifi.ssid : network identification
+- wifi.password : network authentication
+- mqtt.host : MQTT broker host, DNS name or IP address
+- mqtt.port : MQTT port
+- lps.#role : tag | anchor
+- lps.address : 2 chars for address : "T1"
+- lps.anchors :  ["A1","A2"] in case of tag , anchors to address
+
+
+dst/ESP1223.config/mqtt.host : test.mosquitto.org
+
+is equivalent to send { "#dst":"ESP1223.config","#src":"me","request":"set","key":"mqtt.host","value":"test.mosquitto.org" }
+response will arrive on "dst/me" : { "#dst":"me","#src":"ESP1223.config","#reply":"set","error":0,...}
+
+
+dst/ESP1223.mqtt/host : test.mosquitto.org
+
+mqtt.set(key:host,value:test.mosquitto.org);
+
+subscribe("dst/ESP1223.service/#")
+
+if ( contains(extraField) ) 
+	makeSetRequestKV(extraField,mqttPayload)
+"#request":"set"
+"#src":"unknown"
+"key":"extraField"
+"value":mqttPayload
+"id
+
+
+
+
+

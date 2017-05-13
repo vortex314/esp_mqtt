@@ -8,30 +8,29 @@
 #ifndef ACTOR_CONFIG_H_
 #define ACTOR_CONFIG_H_
 
-#include <Arduino.h>
-#include <Cbor.h>
+#include <Str.h>
 
-class ConfigClass {
+
+class Config {
 	void initialize();
 	void initMagic();
 	bool checkMagic();
 
-public:
-	ConfigClass();
-	virtual ~ConfigClass();
 
-	void load(String& config);
-	void save(String& config);
-	void load(Cbor& config);
-	void save(Cbor& config);
+public:
+	Config();
+	virtual ~Config();
+
+	void load();
+	void save();
 
 	void get(const char*, uint32_t &, uint32_t defaultValue);
-	void get(const char*, String&, const char* defaultValue);
+	void get(const char*, Str&, const char* defaultValue);
 
 	void set(const char*, uint32_t &);
-	void set(const char*, String&);
+	void set(const char*, Str&);
 };
 
-extern ConfigClass Config;
+extern Config config;
 
 #endif /* ACTOR_CONFIG_H_ */
