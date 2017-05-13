@@ -11,7 +11,7 @@
 #include <Wifi.h>
 #include <ESP8266mDNS.h>
 class mDNS :public Actor {
-	String _service;
+	Str _service;
 	uint16_t _port;
 	Wifi& _wifi;
 public:
@@ -21,7 +21,7 @@ public:
 	void loop();
 	void onWifiConnected();
 	void setup();
-	void setConfig(String& service,uint16_t port);
+	void setConfig(Str& service,uint16_t port);
 	IPAddress query(const char* service);
 };
 

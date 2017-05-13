@@ -9,7 +9,7 @@
 //MDNSResponder responder;
 
 mDNS::mDNS(Wifi& wifi) :
-    Actor("mdns") ,_wifi(wifi)
+    Actor("mdns") ,_wifi(wifi),_service(30)
 {
     _port = 2000;
     _service = "wibo";
@@ -19,7 +19,7 @@ mDNS::~mDNS()
 {
 }
 
-void mDNS::setConfig(String& service, uint16_t port)
+void mDNS::setConfig(Str& service, uint16_t port)
 {
     _service = service;
     _port = port;

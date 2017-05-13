@@ -13,9 +13,9 @@
 #include <ESP8266WiFi.h>
 
 class Wifi: public Actor {
-	String _ssid;
-	String _password;
-	String _hostname;
+	Str _ssid;
+	Str _password;
+	Str _hostname;
 public:
 	Wifi(const char* name);
 
@@ -26,7 +26,7 @@ public:
 	inline bool connected() {
 		return state()==H("connected");
 	}
-	void setConfig(String& ssid,String& password,String& hostname);
+	void setConfig(Str& ssid,Str& password,Str& hostname);
 	const char* getHostname();
 	const char* getSSID();
 	const char* getPassword();

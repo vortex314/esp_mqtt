@@ -9,10 +9,10 @@
 #include <Config.h>
 
 Wifi::Wifi(const char* name) :
-    Actor(name)
+    Actor(name),_password(60),_ssid(30),_hostname(30)
 {
-    _ssid = "ssid";
-    _password = "password";
+    config.get("wifi.ssid",_ssid,"SSID_UNKNWON");
+    config.get("wifi.pswd",_password,"PSWD");
 }
 
 Wifi::~Wifi()
@@ -66,7 +66,7 @@ void Wifi::loop()
     switchState(WiFi.status() == WL_CONNECTED ? H("connected") : H("disconnected"));
 }
 
-void Wifi::setConfig(String& ssid, String& password, String& hostname)
+void Wifi::setConfig(Str& ssid, Str& password, Str& hostname)
 {
     _ssid = ssid;
     _password = password;

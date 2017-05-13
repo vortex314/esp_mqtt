@@ -25,6 +25,7 @@
 #include <Memory.h>
 #include <SpiTester.h>
 #include <IrqTester.h>
+#include <Configurator.h>
 
 uint32_t BAUDRATE = 115200;
 
@@ -87,18 +88,23 @@ MqttJson router("router",1024);
 DWM1000_Tag dwm1000Tag("TAG");
 DWM1000_Anchor dwm1000Anchor("ANCHOR");
 Memory memory("memory");
+Configurator configurator("config");
 //SpiTester spiTester("spiTester");
 //IrqTester irqTester("irqTester");
-
+Config config;
 
 void setup()
 {
+
+
     Serial.begin(BAUDRATE, SerialConfig::SERIAL_8E1, SerialMode::SERIAL_FULL); // 8E1 for STM32
     Serial.setDebugOutput(false);
+    Sys::delay(1000);
     INFO("version : " __DATE__ " " __TIME__);
     INFO("WIFI_SSID '%s'  ",WIFI_SSID);
 
     String hostname,ssid,pswd;
+    Str strHostname(30),strSsid(30),strPswd(60);
     Sys::init();
     INFO("");
     char hn[20];
@@ -114,10 +120,25 @@ void setup()
     pswd= WIFI_PSWD;
     hostname=hn;
 
-    wifi.setConfig(ssid,pswd,hostname);
-    mdns.setConfig(hostname,2000);
+    strSsid=WIFI_SSID;
+    strPswd =WIFI_PSWD;
+    strHostname = hn;
+
+    wifi.setConfig(strSsid,strPswd,strHostname);
+    mdns.setConfig(strHostname,2000);
     INFO(" starting Wifi host : '%s' on SSID : '%s' '%s' ", wifi.getHostname(),
          wifi.getSSID(), wifi.getPassword());
+
+    uint32_t port;
+//    config.clear();
+    config.get("wifi.ssid",strSsid,"Merckx3");
+    config.get("wifi.pswd",strPswd,"LievenMarletteEwoutRonald");
+    config.get("mqtt.host",strPswd,"limero.ddns.net");
+    config.get("mqtt.port",port,1883);
+    config.get("lpos.role",strPswd,"tag");
+    config.get("lpos.address",strPswd,"T1");
+
+
 
     eb.onAny().call([](Cbor& msg) { // Log all events
         Str str(256);
@@ -139,6 +160,7 @@ void setup()
     memory.setup();
 //    spiTester.setup();
 //    irqTester.setup();
+    configurator.setup();
     if ( strcmp(Sys::hostname(),"ESPCF5241")!=0) {
         dwm1000Anchor.setup();
         INFO("ANCHOR started");

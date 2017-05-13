@@ -1,3 +1,6 @@
 [submodule "libraries/Ebos"]
 	path = libraries/Ebos
 	url = https://github.com/vortex314/Ebos
+[submodule "libraries/Common"]
+	path = libraries/Common
+	url = https://github.com/vortex314/Common
