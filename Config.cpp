@@ -24,6 +24,11 @@ Config::~Config()
 
 }
 
+const char* Config::summary(){
+    load();
+    return json.c_str();
+}
+
 
 void Config::initMagic()
 {
@@ -157,9 +162,33 @@ void Config::set(const char* key,const char* value)
     set(key,str);
 }
 
-bool Config::hasKey(const char* key) {
+bool Config::hasKey(const char* key)
+{
     json.rewind();
     return json.findKey(key);
+}
+
+void Config::remove(const char* key)
+{
+    load();
+    Json output(EEPROM_SIZE);
+    Str valueConfig(60);
+
+//    DEBUG(" set %s:%s ",key,value.c_str());
+//    DEBUG(" json before set : %s",json.c_str());
+    json.rewind();
+    if ( !json.findKey(key) ) {
+        return;
+    }
+    if ( copyExcept(output,json,key)) {
+        output.addBreak();
+        json=output;
+    }
+    INFO(" Config => SAVE  remove %s ",key);
+    save();
+    json.parse();
+//    DEBUG(" json after set : %s",json.c_str());
+
 }
 
 

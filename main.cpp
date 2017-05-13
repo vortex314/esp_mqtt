@@ -93,6 +93,8 @@ Configurator configurator("config");
 //IrqTester irqTester("irqTester");
 Config config;
 
+extern void waitConfig();
+
 void setup()
 {
 
@@ -103,8 +105,10 @@ void setup()
     INFO("version : " __DATE__ " " __TIME__);
     INFO("WIFI_SSID '%s'  ",WIFI_SSID);
 
-    String hostname,ssid,pswd;
-    Str strHostname(30),strSsid(30),strPswd(60);
+    waitConfig();
+
+    String hostname;
+    Str strHostname(30),ssid(30),pswd(60);
     Sys::init();
     INFO("");
     char hn[20];
@@ -116,27 +120,26 @@ void setup()
 
     logger.level(Log::LOG_TRACE);
 
-    ssid = WIFI_SSID;
+    config.get("wifi.ssid",ssid,"SSID");
+    config.get("wifi.pswd",pswd,"PSWD");
+    /*ssid = WIFI_SSID;
     pswd= WIFI_PSWD;
+     * */
     hostname=hn;
-
-    strSsid=WIFI_SSID;
-    strPswd =WIFI_PSWD;
     strHostname = hn;
 
-    wifi.setConfig(strSsid,strPswd,strHostname);
+    wifi.setConfig(ssid,pswd,strHostname);
     mdns.setConfig(strHostname,2000);
     INFO(" starting Wifi host : '%s' on SSID : '%s' '%s' ", wifi.getHostname(),
          wifi.getSSID(), wifi.getPassword());
 
     uint32_t port;
 //    config.clear();
-    config.get("wifi.ssid",strSsid,"Merckx3");
-    config.get("wifi.pswd",strPswd,"LievenMarletteEwoutRonald");
-    config.get("mqtt.host",strPswd,"limero.ddns.net");
+
+ /*   config.get("mqtt.host",strPswd,"limero.ddns.net");
     config.get("mqtt.port",port,1883);
     config.get("lpos.role",strPswd,"tag");
-    config.get("lpos.address",strPswd,"T1");
+    config.get("lpos.address",strPswd,"T1");*/
 
 
 

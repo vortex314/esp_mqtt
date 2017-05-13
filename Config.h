@@ -24,10 +24,12 @@ public:
     void clear();
 	void load();
 	void save();
+    const char* summary();
 
     bool hasKey(const char* key);
 	void get(const char*, uint32_t &, uint32_t defaultValue);
 	void get(const char*, Str&, const char* defaultValue);
+    void remove(const char* key);
 
 	void set(const char*, uint32_t );
 	void set(const char*, Str&);
