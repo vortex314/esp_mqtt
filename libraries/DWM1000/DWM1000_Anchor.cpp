@@ -227,6 +227,7 @@ int DWM1000_Anchor::sendRespMsg()
     dwt_setrxaftertxdelay(RESP_TX_TO_FINAL_RX_DLY_UUS);
     dwt_setrxtimeout(FINAL_RX_TIMEOUT_UUS);
 
+
     delta =  micros()-startIsr;
     if ( dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED) <0) {
         return -1;
@@ -285,7 +286,7 @@ void DWM1000_Anchor::my_dwt_isr()
             if (_anchor->_frame_len <= RX_BUFFER_LEN) {
 //                dwt_readrxdata(rx_buffer, _anchor->_frame_len, 0);
                 dwt_readrxdata(_anchor->dwmMsg.buffer, _anchor->_frame_len, 0);
- //               memcpy(_anchor->dwmMsg.buffer,rx_buffer, _anchor->_frame_len);
+//               memcpy(_anchor->dwmMsg.buffer,rx_buffer, _anchor->_frame_len);
             }
             seq_nbr = _anchor->dwmMsg.sequence;
 //            seq_nbr = rx_buffer[ALL_MSG_SN_IDX];;
@@ -298,6 +299,9 @@ void DWM1000_Anchor::my_dwt_isr()
             } else if (_anchor-> isFinalMsg() ) {
                 _anchor->_finals++;
                 _anchor->calcFinalMsg();
+                dwt_setrxtimeout(0); /* Clear reception timeout to start next ranging process. */
+                dwt_rxenable(0); /* Activate reception immediately. */
+
             } else {
                 _anchor->_errs+=1000;
             }
@@ -338,11 +342,13 @@ void DWM1000_Anchor::enableIsr()
 //_________________________________________________ INITIALIZE SPI
 //
 
-uint16_t btow(uint8_t* b) {
+uint16_t btow(uint8_t* b)
+{
     return  b[0] + ((uint16_t)b[1]<<8);
 }
 
-void wtob(uint8_t* b,uint16_t w){
+void wtob(uint8_t* b,uint16_t w)
+{
     b[0] = w & 0xFF;
     w >>= 8;
     b[1] = w & 0xFF;
@@ -366,6 +372,7 @@ void DWM1000_Anchor::setup()
     config.get("lpos.address",_panAddress,"WA");
 //    uint8_t address[]={'W','A'};
     dwt_setaddress16(btow(_panAddress.data()));
+    dwt_enableframefilter(DWT_FF_DATA_EN);
 
 
     uint64_t eui = 0xF1F2F3F4F5F6F7F;
@@ -405,9 +412,8 @@ void DWM1000_Anchor::setup()
 //    dwt_initialise(DWT_LOADUCODE);
     dwt_setinterrupt(DWT_INT_RFCG, 1);	// enable
 
-
     _count = 0;
-    timeout(5000);
+    timeout(3000);
 }
 
 
@@ -422,8 +428,8 @@ void DWM1000_Anchor::onEvent(Cbor& msg)
 
 
 WAIT_POLL: {
-        dwt_setrxtimeout(0); /* Clear reception timeout to start next ranging process. */
-        dwt_rxenable(0); /* Activate reception immediately. */
+ //       dwt_setrxtimeout(0); /* Clear reception timeout to start next ranging process. */
+ //       dwt_rxenable(0); /* Activate reception immediately. */
         while (true) { /* Poll for reception of a frame or error/timeout. See NOTE 7 below. */
             dwt_setrxtimeout(0); /* Clear reception timeout to start next ranging process. */
             dwt_rxenable(0); /* Activate reception immediately. */
@@ -432,7 +438,7 @@ WAIT_POLL: {
             sys_mask = dwt_read32bitreg(SYS_MASK_ID);
             INFO(" SYS_MASK : %X ",sys_mask);
 
-            timeout(1000);/* This is the delay from the end of the frame transmission to the enable of the receiver, as programmed for the DW1000's wait for response feature. */
+            timeout(5000);/* This is the delay from the end of the frame transmission to the enable of the receiver, as programmed for the DW1000's wait for response feature. */
             PT_YIELD_UNTIL(timeout());
 
             status_reg = dwt_read32bitreg(SYS_STATUS_ID);
