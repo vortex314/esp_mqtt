@@ -167,13 +167,13 @@ void Spi::init()
     WRITE_PERI_REG(SPI_PIN(_spi_no), spi_pin);
 //=================================
 
-    INFO(" SPI_CTRL  0x%08X",READ_PERI_REG(SPI_CTRL(_spi_no)));
+/*    INFO(" SPI_CTRL  0x%08X",READ_PERI_REG(SPI_CTRL(_spi_no)));
     INFO(" SPI_CTRL1 0x%08X",READ_PERI_REG(SPI_CTRL1(_spi_no)));
     INFO(" SPI_CTRL2 0x%08X",READ_PERI_REG(SPI_CTRL2(_spi_no)));
     INFO(" SPI_CLOCK 0x%08X",READ_PERI_REG(SPI_CLOCK(_spi_no)));
     INFO(" SPI_USER  0x%08X",READ_PERI_REG(SPI_USER(_spi_no)));
     INFO(" SPI_USER1  0x%08X",READ_PERI_REG(SPI_USER1(_spi_no)));
-    INFO(" SPI_USER2  0x%08X",READ_PERI_REG(SPI_USER2(_spi_no)));
+    INFO(" SPI_USER2  0x%08X",READ_PERI_REG(SPI_USER2(_spi_no)));*/
 }
 
 void Spi::setHwSelect(bool select)

@@ -8,6 +8,7 @@
 #include <DWM1000_Anchor.h>
 #include <Log.h>
 #include <decaSpi.h>
+#include <Config.h>
 
 extern "C" {
 #include <spi.h>
@@ -23,7 +24,7 @@ extern "C" {
 #define RNG_DELAY_MS 1000
 
 /* Default communication configuration. We use here EVK1000's default mode (mode 3). */
-static dwt_config_t config = {  //
+static dwt_config_t dwt_config = {  //
     2, // Channel number.
     DWT_PRF_64M, // Pulse repetition frequency.
     DWT_PLEN_1024, /* Preamble length. */
@@ -93,7 +94,7 @@ static uint8 frame_seq_nb = 0;
 /* Buffer to store received response message.
  * Its size is adjusted to longest frame that this example code is supposed to handle. */
 #define RX_BUF_LEN 32
-static uint8 rx_buffer[RX_BUF_LEN];
+//static uint8 rx_buffer[RX_BUF_LEN];
 
 /* Hold copy of status register state here for reference, so reader can examine it at a breakpoint. */
 static uint32 status_reg = 0;
@@ -147,7 +148,7 @@ static void final_msg_get_ts(const uint8 *ts_field, uint32 *ts);
 DWM1000_Anchor* DWM1000_Anchor::_anchor;
 
 DWM1000_Anchor::DWM1000_Anchor(const char* name) :
-    Actor(name),_spi(HSPI),_irq(D2)
+    Actor(name),_spi(HSPI),_irq(D2),_panAddress(3)
 {
     _count = 0;
     _interrupts=0;
@@ -177,21 +178,31 @@ uint64_t startIsr;
 uint64_t delta;
 uint8_t seq_nbr ;
 
-bool isPollMsg()
+bool DWM1000_Anchor::isPollMsg()
 {
-    rx_buffer[ALL_MSG_SN_IDX] = 0;
-    return memcmp(rx_buffer, rx_poll_msg, ALL_MSG_COMMON_LEN) == 0;
+//    rx_buffer[ALL_MSG_SN_IDX] = 0;
+    return dwmMsg.function == FUNC_POLL_MSG  ;
+//    return  ( (PollMsg*)rx_buffer)->function == FUNC_POLL_MSG  ;
+//    return memcmp(rx_buffer, rx_poll_msg, ALL_MSG_COMMON_LEN) == 0;
 }
 
-bool isFinalMsg()
+bool DWM1000_Anchor::isFinalMsg()
 {
-    rx_buffer[ALL_MSG_SN_IDX] = 0;
-    return memcmp(rx_buffer, rx_final_msg, ALL_MSG_COMMON_LEN) == 0;
+//    rx_buffer[ALL_MSG_SN_IDX] = 0;
+    return dwmMsg.function == FUNC_FINAL_MSG  ;
+//    return  ( (FinalMsg*)rx_buffer)->function == FUNC_FINAL_MSG  ;
+//    return memcmp(rx_buffer, rx_final_msg, ALL_MSG_COMMON_LEN) == 0;
 }
 
 int DWM1000_Anchor::sendRespMsg()
 {
     uint32 resp_tx_time;
+//    DwmMsg* dwmMsg = (DwmMsg*)rx_buffer;
+    memcpy(respMsg.buffer,tx_resp_msg,sizeof(RespMsg));
+    respMsg.sequence = seq_nbr;
+    memcpy(respMsg.dst,dwmMsg.src,2);
+    memcpy(respMsg.src,dwmMsg.dst,2);
+    respMsg.function = FUNC_RESP_MSG;
 
     poll_rx_ts = get_rx_timestamp_u64(); /* Retrieve poll reception timestamp. */
 
@@ -202,10 +213,15 @@ int DWM1000_Anchor::sendRespMsg()
     if ( seq_nbr > (uint8_t)(_lastSequence+1))
         _anchor->_missed++;
     _lastSequence = seq_nbr;
+
+    dwt_writetxdata(sizeof(respMsg), respMsg.buffer, 0);
+    dwt_writetxfctrl(sizeof(respMsg), 0);
+
+
     /* Write and send the response message. See NOTE 9 below.*/
-    tx_resp_msg[ALL_MSG_SN_IDX] = seq_nbr;
-    dwt_writetxdata(sizeof(tx_resp_msg), tx_resp_msg, 0);
-    dwt_writetxfctrl(sizeof(tx_resp_msg), 0);
+    /*    tx_resp_msg[ALL_MSG_SN_IDX] = seq_nbr;
+        dwt_writetxdata(sizeof(tx_resp_msg), tx_resp_msg, 0);
+        dwt_writetxfctrl(sizeof(tx_resp_msg), 0);*/
     /* Set expected delay and timeout for final message reception. */
     dwt_setdelayedtrxtime(resp_tx_time);
     dwt_setrxaftertxdelay(RESP_TX_TO_FINAL_RX_DLY_UUS);
@@ -230,11 +246,11 @@ void DWM1000_Anchor::calcFinalMsg()
     final_rx_ts = get_rx_timestamp_u64();
 
     /* Get timestamps embedded in the final message. */
-    final_msg_get_ts(&rx_buffer[FINAL_MSG_POLL_TX_TS_IDX],
+    final_msg_get_ts(&dwmMsg.buffer[FINAL_MSG_POLL_TX_TS_IDX],
                      &poll_tx_ts);
-    final_msg_get_ts(&rx_buffer[FINAL_MSG_RESP_RX_TS_IDX],
+    final_msg_get_ts(&dwmMsg.buffer[FINAL_MSG_RESP_RX_TS_IDX],
                      &resp_rx_ts);
-    final_msg_get_ts(&rx_buffer[FINAL_MSG_FINAL_TX_TS_IDX],
+    final_msg_get_ts(&dwmMsg.buffer[FINAL_MSG_FINAL_TX_TS_IDX],
                      &final_tx_ts);
 
     /* Compute time of flight. 32-bit subtractions give correct answers even if clock has wrapped. See NOTE 10 below. */
@@ -267,16 +283,19 @@ void DWM1000_Anchor::my_dwt_isr()
             dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG); /* Clear good RX frame event in the DW1000 status register. */
             _anchor->_frame_len = dwt_read32bitreg(RX_FINFO_ID) & RX_FINFO_RXFL_MASK_1023;
             if (_anchor->_frame_len <= RX_BUFFER_LEN) {
-                dwt_readrxdata(rx_buffer, _anchor->_frame_len, 0);
+//                dwt_readrxdata(rx_buffer, _anchor->_frame_len, 0);
+                dwt_readrxdata(_anchor->dwmMsg.buffer, _anchor->_frame_len, 0);
+ //               memcpy(_anchor->dwmMsg.buffer,rx_buffer, _anchor->_frame_len);
             }
-            seq_nbr = rx_buffer[ALL_MSG_SN_IDX];;
-            if (isPollMsg()) {
+            seq_nbr = _anchor->dwmMsg.sequence;
+//            seq_nbr = rx_buffer[ALL_MSG_SN_IDX];;
+            if (_anchor->isPollMsg()) {
                 _anchor->_polls++;
                 if ( _anchor->sendRespMsg() <0) {
                     _anchor->_errs++;
                 }
 //                frame_seq_nb++;
-            } else if ( isFinalMsg() ) {
+            } else if (_anchor-> isFinalMsg() ) {
                 _anchor->_finals++;
                 _anchor->calcFinalMsg();
             } else {
@@ -319,6 +338,17 @@ void DWM1000_Anchor::enableIsr()
 //_________________________________________________ INITIALIZE SPI
 //
 
+uint16_t btow(uint8_t* b) {
+    return  b[0] + ((uint16_t)b[1]<<8);
+}
+
+void wtob(uint8_t* b,uint16_t w){
+    b[0] = w & 0xFF;
+    w >>= 8;
+    b[1] = w & 0xFF;
+}
+
+
 void DWM1000_Anchor::setup()
 {
 //_________________________________________________INIT SPI ESP8266
@@ -333,7 +363,9 @@ void DWM1000_Anchor::setup()
     spi_set_rate_low();
     enableIsr();
     dwt_setpanid(0xDECA);
-    dwt_setaddress16(((uint16_t)'A'<<8)+'W');
+    config.get("lpos.address",_panAddress,"WA");
+//    uint8_t address[]={'W','A'};
+    dwt_setaddress16(btow(_panAddress.data()));
 
 
     uint64_t eui = 0xF1F2F3F4F5F6F7F;
@@ -347,7 +379,7 @@ void DWM1000_Anchor::setup()
         INFO( " dwt_initialise failed " );
     }
     INFO( " dwt_initialise done." );
-    while (dwt_configure(&config)) {
+    while (dwt_configure(&dwt_config)) {
         INFO( " dwt_configure failed " );
     }
     INFO( " dwt_configure done." );
@@ -359,6 +391,7 @@ void DWM1000_Anchor::setup()
 
     INFO( " device id : %X , part id : %X , lot_id : %X"
           , device_id , part_id , lot_id );
+    INFO(" sizeof DwmMsg:%d ,PollMsg:%d, RespMsg :%d, FinalMsg: %d",sizeof(DwmMsg),sizeof(PollMsg),sizeof(RespMsg),sizeof(FinalMsg));
 
     /* Apply default antenna delay value. See NOTE 1 below. */
     dwt_setrxantennadelay(RX_ANT_DLY);
@@ -406,11 +439,14 @@ WAIT_POLL: {
             INFO( " SYS_STATUS : %X seq : %d" , status_reg ,seq_nbr);
             eb.publicEvent(id(),H("interrupts")).addKeyValue(H("$data"),_interrupts);
             eb.send();
-            bytes.map(rx_buffer,_frame_len);
+            bytes.map(dwmMsg.buffer,_frame_len);
             eb.publicEvent(id(),H("poll")).addKeyValue(H("$data"),bytes);
             eb.send();
             bytes.map(tx_resp_msg,sizeof(tx_resp_msg));
             eb.publicEvent(id(),H("resp")).addKeyValue(H("$data"),bytes);
+            eb.send();
+            bytes.map(respMsg.buffer,sizeof(respMsg));
+            eb.publicEvent(id(),H("respMsg")).addKeyValue(H("$data"),bytes);
             eb.send();
             eb.publicEvent(id(),H("distance")).addKeyValue(H("data"),distance);
             eb.send();

@@ -10,6 +10,7 @@
 #include <Log.h>
 #include <EventBus.h>
 #include <Peripheral.h>
+#include <DWM1000_Message.h>
 
 class DWM1000_Tag: public Actor
 {

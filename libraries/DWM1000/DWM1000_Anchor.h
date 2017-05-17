@@ -10,6 +10,7 @@
 
 #include <EventBus.h>
 #include <Peripheral.h>
+#include <DWM1000_Message.h>
 
 class DWM1000_Anchor: public Actor
 {
@@ -26,6 +27,9 @@ class DWM1000_Anchor: public Actor
     enum { WAIT_POLL, WAIT_FINAL } _state;
     bool interrupt_detected ;
     uint32_t _frame_len;
+    RespMsg respMsg;
+    DwmMsg dwmMsg;
+    Str _panAddress;
 public:
     DWM1000_Anchor(const char* name);
     virtual ~DWM1000_Anchor();
@@ -41,6 +45,8 @@ public:
     void sendReply();
     void calcFinalMsg();
     int sendRespMsg();
+    bool isPollMsg();
+    bool isFinalMsg();
 };
 
 #endif /* DWM1000_Anchor_Tag_H_ */
