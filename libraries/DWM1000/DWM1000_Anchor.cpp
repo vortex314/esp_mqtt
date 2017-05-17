@@ -31,7 +31,7 @@ static dwt_config_t config = {  //
     9, /* TX preamble code. Used in TX only. */
     9, /* RX preamble code. Used in RX only. */
     1, /* Use non-standard SFD (Boolean) */
-    DWT_BR_6M8, /* Data rate. */
+    DWT_BR_850K, /* Data rate. */
     DWT_PHRMODE_STD, /* PHY header mode. */
     (1025 + 64 - 32) /* SFD timeout (preamble length + 1 + SFD length - PAC size). Used in RX only. */
 };
@@ -175,6 +175,7 @@ void DWM1000_Anchor::resetChip()
 
 uint64_t startIsr;
 uint64_t delta;
+uint8_t seq_nbr ;
 
 bool isPollMsg()
 {
@@ -188,7 +189,7 @@ bool isFinalMsg()
     return memcmp(rx_buffer, rx_final_msg, ALL_MSG_COMMON_LEN) == 0;
 }
 
-int sendRespMsg()
+int DWM1000_Anchor::sendRespMsg()
 {
     uint32 resp_tx_time;
 
@@ -198,16 +199,18 @@ int sendRespMsg()
     resp_tx_time = (poll_rx_ts
                     + (POLL_RX_TO_RESP_TX_DLY_UUS * UUS_TO_DWT_TIME)) >> 8;
 
-
+    if ( seq_nbr > (uint8_t)(_lastSequence+1))
+        _anchor->_missed++;
+    _lastSequence = seq_nbr;
     /* Write and send the response message. See NOTE 9 below.*/
-    tx_resp_msg[ALL_MSG_SN_IDX] = frame_seq_nb;
+    tx_resp_msg[ALL_MSG_SN_IDX] = seq_nbr;
     dwt_writetxdata(sizeof(tx_resp_msg), tx_resp_msg, 0);
     dwt_writetxfctrl(sizeof(tx_resp_msg), 0);
     /* Set expected delay and timeout for final message reception. */
     dwt_setdelayedtrxtime(resp_tx_time);
     dwt_setrxaftertxdelay(RESP_TX_TO_FINAL_RX_DLY_UUS);
     dwt_setrxtimeout(FINAL_RX_TIMEOUT_UUS);
-    
+
     delta =  micros()-startIsr;
     if ( dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED) <0) {
         return -1;
@@ -215,7 +218,7 @@ int sendRespMsg()
     return 0;
 }
 
-void calcFinalMsg()
+void DWM1000_Anchor::calcFinalMsg()
 {
     uint32 poll_tx_ts, resp_rx_ts, final_tx_ts;
     uint32 poll_rx_ts_32, resp_tx_ts_32, final_rx_ts_32;
@@ -266,15 +269,16 @@ void DWM1000_Anchor::my_dwt_isr()
             if (_anchor->_frame_len <= RX_BUFFER_LEN) {
                 dwt_readrxdata(rx_buffer, _anchor->_frame_len, 0);
             }
+            seq_nbr = rx_buffer[ALL_MSG_SN_IDX];;
             if (isPollMsg()) {
                 _anchor->_polls++;
-                if ( sendRespMsg() <0) {
+                if ( _anchor->sendRespMsg() <0) {
                     _anchor->_errs++;
                 }
-                frame_seq_nb++;
+//                frame_seq_nb++;
             } else if ( isFinalMsg() ) {
                 _anchor->_finals++;
-                calcFinalMsg();
+                _anchor->calcFinalMsg();
             } else {
                 _anchor->_errs+=1000;
             }
@@ -399,27 +403,30 @@ WAIT_POLL: {
             PT_YIELD_UNTIL(timeout());
 
             status_reg = dwt_read32bitreg(SYS_STATUS_ID);
-            INFO( " SYS_STATUS : %X" , status_reg );
-            eb.event(id(),H("interrupts")).addKeyValue(H("$data"),_interrupts).addKeyValue(H("public"),true);;
+            INFO( " SYS_STATUS : %X seq : %d" , status_reg ,seq_nbr);
+            eb.publicEvent(id(),H("interrupts")).addKeyValue(H("$data"),_interrupts);
             eb.send();
             bytes.map(rx_buffer,_frame_len);
-            eb.event(id(),H("poll")).addKeyValue(H("$data"),bytes).addKeyValue(H("public"),true);
+            eb.publicEvent(id(),H("poll")).addKeyValue(H("$data"),bytes);
             eb.send();
             bytes.map(tx_resp_msg,sizeof(tx_resp_msg));
-            eb.event(id(),H("resp")).addKeyValue(H("$data"),bytes).addKeyValue(H("public"),true);;
+            eb.publicEvent(id(),H("resp")).addKeyValue(H("$data"),bytes);
             eb.send();
-            eb.event(id(),H("distance")).addKeyValue(H("data"),distance).addKeyValue(H("public"),true);;
+            eb.publicEvent(id(),H("distance")).addKeyValue(H("data"),distance);
             eb.send();
-            eb.event(id(),H("finals")).addKeyValue(H("data"),_finals).addKeyValue(H("public"),true);;
+            eb.publicEvent(id(),H("finals")).addKeyValue(H("data"),_finals);
             eb.send();
-            eb.event(id(),H("polls")).addKeyValue(H("data"),_polls).addKeyValue(H("public"),true);;
+            eb.publicEvent(id(),H("polls")).addKeyValue(H("data"),_polls);
             eb.send();
-            eb.event(id(),H("errs")).addKeyValue(H("data"),_errs).addKeyValue(H("public"),true);;
+            eb.publicEvent(id(),H("errs")).addKeyValue(H("data"),_errs);
             eb.send();
-            eb.event(id(),H("delta")).addKeyValue(H("data"),delta).addKeyValue(H("public"),true);;
+            eb.publicEvent(id(),H("delta")).addKeyValue(H("data"),delta);
             eb.send();
-            eb.event(id(),H("poll_rx_ts")).addKeyValue(H("data"),poll_rx_ts).addKeyValue(H("public"),true);;
+            eb.publicEvent(id(),H("poll_rx_ts")).addKeyValue(H("data"),poll_rx_ts);
             eb.send();
+            eb.publicEvent(id(),H("missed")).addKeyValue(H("data"),_missed);
+            eb.send();
+
             _oldInterrupts=_interrupts;
 
         }

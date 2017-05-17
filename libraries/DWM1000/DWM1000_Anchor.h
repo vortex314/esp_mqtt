@@ -20,6 +20,8 @@ class DWM1000_Anchor: public Actor
     uint32_t _polls;
     uint32_t _finals;
     uint32_t _errs;
+    uint32_t _missed;
+    uint8_t _lastSequence;
     static DWM1000_Anchor* _anchor;
     enum { WAIT_POLL, WAIT_FINAL } _state;
     bool interrupt_detected ;
@@ -37,6 +39,8 @@ public:
     bool isInterruptDetected();
     bool clearInterrupt();
     void sendReply();
+    void calcFinalMsg();
+    int sendRespMsg();
 };
 
 #endif /* DWM1000_Anchor_Tag_H_ */

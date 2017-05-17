@@ -118,7 +118,7 @@ void setup()
     INFO(" hostname : %s",hn);
     Sys::hostname(hn);
 
-    logger.level(Log::LOG_TRACE);
+    logger.level(Log::LOG_INFO);
 
     config.get("wifi.ssid",ssid,"SSID");
     config.get("wifi.pswd",pswd,"PSWD");

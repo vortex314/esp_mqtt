@@ -33,7 +33,7 @@ static dwt_config_t config = {  //
     9, /* TX preamble code. Used in TX only. */
     9, /* RX preamble code. Used in RX only. */
     1, /* Use non-standard SFD (Boolean) */
-    DWT_BR_6M8, /* Data rate. DWT_BR_110K */
+    DWT_BR_850K, /* Data rate. DWT_BR_110K */
     DWT_PHRMODE_STD, /* PHY header mode. */
     (1025 + 64 - 32) /* SFD timeout (preamble length + 1 + SFD length - PAC size). Used in RX only. */
 };
@@ -315,7 +315,7 @@ POLL_SEND: {
 
             /* Write frame data to DW1000 and prepare transmission. See NOTE 7 below. */
             _polls++;
-            tx_poll_msg[ALL_MSG_SN_IDX] = frame_seq_nb++;
+            tx_poll_msg[ALL_MSG_SN_IDX] = frame_seq_nb;
             dwt_writetxdata(sizeof(tx_poll_msg), tx_poll_msg, 0);
             dwt_writetxfctrl(sizeof(tx_poll_msg), 0);
             dwt_setrxaftertxdelay(POLL_TX_TO_RESP_RX_DLY_UUS);
