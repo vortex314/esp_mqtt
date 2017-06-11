@@ -48,10 +48,7 @@
  *
  * returns the state of the DW1000 interrupt
  */
-decaIrqStatus_t decamutexon(void)
-{
-	return 0;
-}
+
 
 /* LIMERO
 decaIrqStatus_t decamutexon(void)           
@@ -79,10 +76,7 @@ decaIrqStatus_t decamutexon(void)
  *
  * returns the state of the DW1000 interrupt
  */
-void decamutexoff(decaIrqStatus_t s)
-{
 
-}
 /* LIMERO
 void decamutexoff(decaIrqStatus_t s)        // put a function here that re-enables the interrupt at the end of the critical section
 {

@@ -2,6 +2,11 @@
 #ifndef DWM1000_Message_H_
 #define DWM1000_Message_H_
 
+#define FC_1_BLINK 0xC5
+#define FC_1_SHORT 0x41
+#define FC_2 0x8C
+#define FC_2_SHORT 0x88
+
 typedef union {
     uint8_t buffer[];
     struct {
@@ -73,6 +78,17 @@ typedef  union {
         uint8_t crc[2];
     } ;
 } __attribute__ ((packed)) FinalMsg ;
+
+typedef  union {
+    uint8_t buffer[];
+    struct {
+        uint8_t fc[1];
+        uint8_t sequence;
+        uint8_t sourceLong[8];
+        uint8_t sourceShort[2];
+        uint8_t crc[2];
+    } ;
+} __attribute__ ((packed)) BlinkMsg ;
 
 #define FUNC_POLL_MSG  0x21
 #define FUNC_RESP_MSG  0x10

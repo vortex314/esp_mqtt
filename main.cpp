@@ -26,11 +26,12 @@
 #include <SpiTester.h>
 #include <IrqTester.h>
 #include <Configurator.h>
+#include <Metric.h>
 
 uint32_t BAUDRATE = 115200;
 
 Uid uid(200);
-EventBus eb(2048,1024);
+EventBus eb(4096,1024);
 Log logger(256);
 
 
@@ -38,40 +39,12 @@ Log logger(256);
 
 //________________________________________________Se_________________
 #ifndef WIFI_SSID
-#define WIFI_SSID "Merckx3"
+#define WIFI_SSID "YOUR_SSID"
 #endif
 #ifndef WIFI_PSWD
-#define WIFI_PSWD "LievenMarletteEwoutRonald"
+#define WIFI_PSWD "YOUR_PASSWORD"
 #endif
 Str line(20);
-class Timer : public Actor
-{
-    uint32_t _counter;
-    uid_t _bl;
-public:
-    Timer():Actor("timer") {
-        _counter=0;
-        _bl =  H("bootloader");
-    }
-    void setup() {
-        eb.onDst(H("timer")).call(this);
-        timeout(10000);
-    }
-
-    void onEvent(Cbor& msg) {
-        PT_BEGIN();
-LOOP : {
-            while(true) {
-                eb.request(H("remote1"),H("connect"),id());
-                eb.send();
-                timeout(3000);
-                PT_YIELD_UNTIL(timeout() || eb.isReplyCorrect(H("remote1"),H("connect")));
-            }
-        }
-        PT_END();
-    }
-};
-
 
 
 
@@ -80,11 +53,11 @@ LOOP : {
 
 Wifi wifi("wifi");
 mDNS mdns(wifi);
-Timer timer;
+
 LedBlinker led;
 Mqtt mqtt("mqtt",1024);
 System systm("system");
-MqttJson router("router",1024);
+MqttJson router("mqttJson",1024);
 DWM1000_Tag dwm1000Tag("TAG");
 DWM1000_Anchor dwm1000Anchor("ANCHOR");
 Memory memory("memory");
@@ -94,6 +67,8 @@ Configurator configurator("config");
 Config config;
 
 extern void waitConfig();
+
+enum { NONE,TAG,ANCHOR } DWM1000Role=NONE;
 
 void setup()
 {
@@ -118,13 +93,11 @@ void setup()
     INFO(" hostname : %s",hn);
     Sys::hostname(hn);
 
-    logger.level(Log::LOG_INFO);
+    logger.level(Log::LOG_DEBUG);
 
     config.get("wifi.ssid",ssid,"SSID");
     config.get("wifi.pswd",pswd,"PSWD");
-    /*ssid = WIFI_SSID;
-    pswd= WIFI_PSWD;
-     * */
+
     hostname=hn;
     strHostname = hn;
 
@@ -136,10 +109,10 @@ void setup()
     uint32_t port;
 //    config.clear();
 
- /*   config.get("mqtt.host",strPswd,"limero.ddns.net");
-    config.get("mqtt.port",port,1883);
-    config.get("lpos.role",strPswd,"tag");
-    config.get("lpos.address",strPswd,"T1");*/
+    /*   config.get("mqtt.host",strPswd,"limero.ddns.net");
+       config.get("mqtt.port",port,1883);
+       config.get("lpos.role",strPswd,"tag");
+       config.get("lpos.address",strPswd,"T1");*/
 
 
 
@@ -159,18 +132,29 @@ void setup()
 //    mqtt.setWifi(wifi.id());
     wifi.setup();
     mdns.setup();
-    timer.setup();
-    memory.setup();
+
+//    memory.setup();
 //    spiTester.setup();
 //    irqTester.setup();
     configurator.setup();
-    if ( strcmp(Sys::hostname(),"ESPCF5241")!=0) {
-        dwm1000Anchor.setup();
-        INFO("ANCHOR started");
 
-    } else {
+    Str role(3);
+    config.get("lpos.role",role,"A");
+
+
+    uint8_t mac[8];
+    memset(mac,0,8);
+    WiFi.macAddress(&mac[2]);
+    if ( strcmp(role.c_str(), "T") == 0) {
+        DWM1000Role = TAG;
+        dwm1000Tag.setShortAddress(ESP.getChipId() & 0xFFFF);
+        dwm1000Tag.setLongAddress(mac);
         dwm1000Tag.setup();
-        INFO("TAG started");
+    } else { // otherwise an anchor
+    DWM1000Role=ANCHOR;
+        dwm1000Anchor.setShortAddress(ESP.getChipId() & 0xFFFF);
+        dwm1000Anchor.setLongAddress(mac);
+        dwm1000Anchor.setup();
     }
 
 
@@ -187,11 +171,22 @@ void setup()
 
     return;
 }
+Timer eventBusy("eventBusy",100000);
+Timer eventIdle("eventIdle",100000);
 extern "C"  void loop()
 {
+    eventIdle.stop();
+    eventBusy.start();
+    
     eb.eventLoop();
     wifi.loop();
     mqtt.loop();
     mdns.loop();
-
+    if ( DWM1000Role==TAG)
+        dwm1000Tag.loop();
+    if ( DWM1000Role==ANCHOR)
+        dwm1000Anchor.loop();
+        
+    eventBusy.stop();
+    eventIdle.start();
 }

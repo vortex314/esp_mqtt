@@ -103,7 +103,7 @@ void Config::save()
     initMagic();
     for (int i = 0; i < json.length(); i++)
         EEPROM.write(address++, json.peek(i));
-    EEPROM.write(address++, 0);
+    EEPROM.write(address++,'\0');
     ASSERT_LOG(EEPROM.commit());
     EEPROM.end();
 }
@@ -252,7 +252,7 @@ void Config::get(const char* key, Str& value,
         json.get(value);
     } else {
         value = defaultValue;
-        set(key,value);
+//        set(key,value);
     }
     INFO(" Config => %s = %s ",key,value.c_str());
 }
@@ -268,7 +268,7 @@ void Config::get(const char* key, uint32_t& value,
         json.get(value);
     } else {
         value = defaultValue;
-        set(key,value);
+//        set(key,value);
     }
     INFO(" Config => %s = %d ",key,value);
 }

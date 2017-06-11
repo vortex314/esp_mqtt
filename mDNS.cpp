@@ -27,7 +27,7 @@ void mDNS::setConfig(Str& service, uint16_t port)
 
 void mDNS::setup()
 {
-    eb.onEvent(H("wifi"),H("connected")).call(this,(MethodHandler)&mDNS::onWifiConnected);
+    eb.onEvent(_wifi.id(),H("connected")).call(this,(MethodHandler)&mDNS::onWifiConnected);
 }
 
 void mDNS::onEvent(Cbor& cbor)

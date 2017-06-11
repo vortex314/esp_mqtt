@@ -11,7 +11,7 @@ SERIAL_BAUD = 115200
 USER_DEFINE = -DWIFI_SSID=\"Merckx3\" -DWIFI_PSWD=\"LievenMarletteEwoutRonald\" \
 	-Ilibraries/Common/src -I../pubsubclient/src -Ilibraries/Ebos \
 	-DMQTT_MAX_PACKET_SIZE=768 -DMQTT_MAX_TRANSFER_SIZE=900 -DESP8266 \
-	-I../Arduino/libraries/SPI
+	-I../Arduino/libraries/SPI 
 USER_LINK =  -lmain  
 OTA_IP = 192.168.1.184
 OTA_PORT = 8266 

@@ -1,4 +1,5 @@
 #include <Peripheral.h>
+#include <deca_device_api.h>
 
 Spi* _gSpi;     // to support irq 
 
@@ -61,7 +62,7 @@ extern "C" int readfromspi(uint16 hLen, const uint8 *hbuff, uint32 bLen, uint8 *
 /////////////////////////////////////////////////////////////////////////////////
 extern "C" void spi_set_rate_low()
 {
-    _gSpi->setClock(400000);
+    _gSpi->setClock(1000000);
     _gSpi->init();
 }
 //////////////////////////////////////////////////////////////////////////////////
@@ -74,5 +75,14 @@ extern "C" void spi_set_rate_high()
    _gSpi->setClock(4000000);
    _gSpi->init();
 }
+
+extern "C" decaIrqStatus_t decamutexon() {
+    noInterrupts();
+}
+
+extern "C" void decamutexoff(decaIrqStatus_t s) {
+    interrupts();
+}
+
 
 

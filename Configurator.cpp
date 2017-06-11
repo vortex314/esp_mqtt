@@ -24,8 +24,8 @@ void Configurator::onEvent(Cbor& msg)
     uint32_t error;
     if ( timeout() ) {
         timeout(5000);
-        eb.publicEvent(id(),H("configurator")).addKeyValue(H("$data"),"ccc");
-        eb.send();
+//        eb.publicEvent(id(),H("configurator")).addKeyValue(H("$data"),"ccc");
+//        eb.send();
     } else if ( eb.isRequest(H("set"))) {
         Cbor& reply = eb.reply();
         if ( msg.getKeyValue(H("key"),_key) && msg.getKeyValue(H("value"),_value) ) {
