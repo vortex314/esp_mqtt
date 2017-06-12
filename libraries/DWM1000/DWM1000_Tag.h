@@ -58,6 +58,7 @@ class DWM1000_Tag: public Actor,public DWM1000
     Str _panAddress;
     uint8_t _rxdSequence;
     std::map<uint16_t,RemoteAnchor> anchors;
+    enum { RCV_BLINK=H("RCV_BLINK"),SND_POLL=H("SND_POLL"),RCV_RESP=H("RCV_RESP"),SND_FINAL=H("SND_FINAL") } _state;
 public:
     DWM1000_Tag(const char* name);
     virtual ~DWM1000_Tag();

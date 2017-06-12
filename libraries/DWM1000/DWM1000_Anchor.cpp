@@ -290,13 +290,7 @@ void wtob(uint8_t* b, uint16_t w)
 }
 Timer anchorRxcallbackTime("rxcallback time",10);
 Str anchorLogStr(100);
-//_________________________________________________ IRQ handler
-void DWM1000_Anchor::rxcallback(const  dwt_callback_data_t* signal)
-{
-    anchorRxcallbackTime.start();
-    _anchor->onRxd(signal);
-    anchorRxcallbackTime.stop();
-}
+
 
 void DWM1000_Anchor::onRxd( const dwt_callback_data_t* signal)
 {
@@ -349,9 +343,25 @@ void DWM1000_Anchor::onRxd( const dwt_callback_data_t* signal)
 
 }
 
-void DWM1000_Anchor::txcallback( const dwt_callback_data_t* signal)
+//_________________________________________________ IRQ handler
+
+void DWM1000_Anchor::rxcallback(const  dwt_callback_data_t* signal)
+{
+    INFO("RXD");
+    anchorRxcallbackTime.start();
+    _anchor->onRxd(signal);
+    anchorRxcallbackTime.stop();
+}
+
+void DWM1000_Anchor::onTxd(const dwt_callback_data_t* signal)
 {
 
+}
+
+void DWM1000_Anchor::txcallback( const dwt_callback_data_t* signal)
+{
+    INFO("TXD");
+    _anchor->onTxd(signal);
 }
 
 //===================================================================================
@@ -366,7 +376,7 @@ void DWM1000_Anchor::setup()
     dwt_setdblrxbuffmode(false);
     dwt_setrxtimeout(0);
     dwt_rxenable(0);
-    dwt_setinterrupt(DWT_INT_RFCG | DWT_INT_RFTO | DWT_INT_RXPTO, 1); // enable
+    dwt_setinterrupt(DWT_INT_RFCG | DWT_INT_RFTO | DWT_INT_TFRS, 1); // enable
     attachInterrupt(digitalPinToInterrupt(D2), dwt_isr, RISING);
 
     /* Set expected response's delay and timeout. See NOTE 4 and 5 below.
@@ -381,7 +391,7 @@ void DWM1000_Anchor::setup()
 
 }
 
-Metric<uint32_t> opsTime("DW1000 Action",10);
+Timer opsTime("DW1000 Action",10);
 uint64_t _startTime;
 
 Bytes byts(100);
@@ -398,28 +408,31 @@ void DWM1000_Anchor::onEvent(Cbor& msg)
     PT_BEGIN()
 
 BLINK : {
-        dwt_setrxtimeout(0); /* Clear reception timeout to start next ranging process. */
-        dwt_rxenable(0); /* Activate reception immediately. */
 
 
         while(true) {
+            dwt_write32bitreg(SYS_STATUS_ID,  SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_ERR | SYS_STATUS_ALL_TX);
+            sys_mask = dwt_read32bitreg(SYS_MASK_ID);
+            INFO(" SYS_MASK : %X ", sys_mask);
+            dwt_setinterrupt(DWT_INT_RFCG | DWT_INT_RFTO | DWT_INT_TFRS, 1); // enable
+            dwt_setrxtimeout(0); /* Clear reception timeout to start next ranging process. */
+            dwt_rxenable(0); /* Activate reception immediately. */
             BlinkMsg blinkMsg;
             createBlinkFrame(blinkMsg);
-            _startTime=micros();
+            opsTime.start();
+
             dwt_writetxdata(sizeof(blinkMsg), blinkMsg.buffer, 0);
             dwt_writetxfctrl(sizeof(blinkMsg), 0);
             erc =dwt_starttx(DWT_START_TX_IMMEDIATE);
-            opsTime.update(micros()-_startTime);
+
+            opsTime.stop();
 
             str.appendHex(blinkMsg.buffer,sizeof(blinkMsg),':');
             INFO(str.c_str());
-            INFO("BLINK : erc %d , sequence : %d ",erc,_blinkSequence);
+            INFO("BLINK : erc %d , sequence : %d ",erc,sequence());
+
             timeout(1000);
             PT_YIELD_UNTIL(timeout());
-            dwt_write32bitreg(SYS_STATUS_ID,  SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_ERR | SYS_STATUS_ALL_TX);
-            dwt_setinterrupt(DWT_INT_RFCG | DWT_INT_RFTO | DWT_INT_RXPTO , 1); // enable
-            sys_mask = dwt_read32bitreg(SYS_MASK_ID);
-            INFO(" SYS_MASK : %X ", sys_mask);
         }
     }
 

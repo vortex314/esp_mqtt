@@ -34,11 +34,11 @@ class DWM1000
 {
     uint32_t _count;
     Spi _spi;
-/*    DWM1000* _me;
-    uint32_t _interrupts;
-    uint32_t _polls;
-    bool interrupt_detected;
-    */
+    /*    DWM1000* _me;
+        uint32_t _interrupts;
+        uint32_t _polls;
+        bool interrupt_detected;
+        */
 
     uint8_t _longAddress[8];
     uint16_t _shortAddress;
@@ -70,6 +70,9 @@ public:
     void createPollMsg(PollMsg& pollMsg,uint16_t address);
     void createRespMsg(RespMsg& respMsg,PollMsg& pollMsg);
     void tune();
+    uint8_t sequence() {
+        return _sequence;
+    }
 
 private:
 

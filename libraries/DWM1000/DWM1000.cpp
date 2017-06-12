@@ -186,16 +186,8 @@ void DWM1000::setup()
     INFO( " device id : %X , part id : %X , lot_id : %X"
           , device_id , part_id , lot_id );
 
-
     dwt_setrxantennadelay(RX_ANT_DLY); /* Apply default antenna delay value. See NOTE 1 below. */
     dwt_settxantennadelay(TX_ANT_DLY);
-
-    /* Set expected response's delay and timeout. See NOTE 4 and 5 below.
-     * As this example only handles one incoming frame with always the same delay and timeout, those values can be set here once for all. */
-
-    dwt_setinterrupt(DWT_INT_RFCG , 1); // enable
-
-
 }
 
 FrameType DWM1000::getFrameType(DwmMsg& msg)
@@ -209,8 +201,7 @@ FrameType DWM1000::getFrameType(DwmMsg& msg)
     return FT_UNKNOWN;
 }
 
-
-
+//=======================================================================
 
 void DWM1000::createBlinkFrame(BlinkMsg& blink)
 {
@@ -220,6 +211,8 @@ void DWM1000::createBlinkFrame(BlinkMsg& blink)
     blink.sequence==_sequence++;
     for(int i=0; i<8; i++) blink.sourceLong[i]=_longAddress[7-i];
 }
+
+//=======================================================================
 
 void DWM1000::createPollMsg(PollMsg& pollMsg,uint16_t address)
 {
@@ -234,6 +227,8 @@ void DWM1000::createPollMsg(PollMsg& pollMsg,uint16_t address)
     pollMsg.src[0]=_shortAddress & 0xFF;
     pollMsg.src[1]= _shortAddress >> 8;
 }
+
+//=======================================================================
 
 void DWM1000::createRespMsg(RespMsg& respMsg,PollMsg& pollMsg){
     respMsg.fc[0]=FC_1_SHORT;
