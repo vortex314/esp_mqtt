@@ -72,24 +72,19 @@ public:
     static void my_dwt_isr(void *);
     bool isInterruptDetected();
     bool clearInterrupt();
-    void enableIsr();
+
     void onEvent(Cbor& msg);
-    bool isRespMsg();
+
     int sendFinalMsg();
     int sendPollMsg();
     static void rxcallback(const  dwt_callback_data_t* event) ;
     static void txcallback(const  dwt_callback_data_t* event) ;
-    void onRxd(const  dwt_callback_data_t* signal);
-    void onTxd(const  dwt_callback_data_t* signal);
     void onDWEvent(const dwt_callback_data_t* signal);
-    bool getBlinkMsg( const dwt_callback_data_t* signal);
-    bool getRespMsg(const dwt_callback_data_t* signal);
-    void testStl();
     FrameType readMsg(const dwt_callback_data_t* signal);
     void updateAnchors();
+    void expireAnchors();
 private:
-    bool _rxd;
-    bool _txd;
+
 };
 
 #endif /* DWM1000_Tag_H_ */

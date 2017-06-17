@@ -34,6 +34,9 @@ typedef enum {
     FT_UNKNOWN=H("FT_UNKNOWN")
 } FrameType;
 
+#define DWM_PIN_RESET D1
+#define DWM_PIN_IRQ D2
+
 class DWM1000
 {
     uint32_t _count;

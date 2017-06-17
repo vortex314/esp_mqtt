@@ -59,15 +59,11 @@ public:
     void sendReply();
     void calcFinalMsg();
     int sendRespMsg();
-    bool getPollMsg(const  dwt_callback_data_t* signal);
-    bool getFinalMsg(const  dwt_callback_data_t* signal);
-    bool isPollMsg();
-    bool isFinalMsg();
+
     void loop();
     static void rxcallback(const  dwt_callback_data_t* event) ;
     static void txcallback(const  dwt_callback_data_t* event) ;
-    void onRxd(const  dwt_callback_data_t* signal);
-    void onTxd(const  dwt_callback_data_t* signal);
+
     void onDWEvent(const  dwt_callback_data_t* event);
     FrameType readMsg(const dwt_callback_data_t* signal);
 };

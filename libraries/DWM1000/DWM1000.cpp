@@ -134,12 +134,10 @@ void DWM1000::setup()
     spi_set_global(&_spi);  // to support deca spi routines
     spi_set_rate_low();
 
-    int pin = D2;   // RESET PIN == D1 == GPIO5
-    pinMode(D2, 0);// INPUT
+//    int pin = D2;   // RESET PIN == D1 == GPIO5
+//    pinMode(DWM_PIN_IRQ, 0);// INPUT
 //    attachInterrupt(digitalPinToInterrupt(pin), dwt_isr, RISING);
     dwt_setpanid(0xDECA);
-//    config.get("lpos.address", _panAddress, "VE");
-//    uint8_t address[]={'W','A'};
     dwt_setaddress16(_shortAddress);
 //    dwt_enableframefilter(DWT_FF_DATA_EN);
 //    dwt_setpanid(0xDECA);
@@ -279,10 +277,6 @@ void DWM1000::setLongAddress(uint8_t address[])
 {
     memcpy(_longAddress,address,8);
 }
-
-
-
-
 
 void dwt_write8bitoffsetreg(uint8_t reg,uint8_t offset,uint8_t data)
 {

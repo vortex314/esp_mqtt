@@ -22,73 +22,12 @@ extern "C" {
 #include "deca_sleep.h"
 }
 
-
-
-
 /* Inter-ranging delay period, in milliseconds. */
 #define RNG_DELAY_MS 1000
-
-
-
 /* Default antenna delay values for 64 MHz PRF. See NOTE 1 below. */
 #define TX_ANT_DLY 16436
 #define RX_ANT_DLY 16436
-
-/* Frames used in the ranging process. See NOTE 2 below. */
-/*
-static uint8 tx_poll_msg[] = { //
-    0x41, 0x88, // byte 0/1: frame control (0x8841 to indicate a data frame using 16-bit addressing).
-    0,  // byte 2: sequence number, incremented for each new frame.
-    0xCA, 0xDE, // byte 3/4 : PAN ID (0xDECA)
-    'W', 'A',  // byte 5/6: destination address, see NOTE 3 below.
-    'V', 'E',  // byte 7/8: source address, see NOTE 3 below.
-    0x21, // byte 9: function code (specific values to indicate which message it is in the ranging process).
-    0, 0
-};  // All messages end with a 2-byte checksum automatically set by DW1000.
-
-static uint8 rx_resp_msg[] = { //
-    0x41, 0x88, // byte 0/1: frame control (0x8841 to indicate a data frame using 16-bit addressing).
-    0,  // byte 2: sequence number, incremented for each new frame.
-    0xCA, 0xDE, // byte 3/4 : PAN ID (0xDECA)
-    'V', 'E',  // byte 5/6: destination address, see NOTE 3 below.
-    'W', 'A',  // byte 7/8: source address, see NOTE 3 below.
-    0x10, // byte 9: function code (specific values to indicate which message it is in the ranging process). [Response message]
-    0x02, // byte 10: activity code (0x02 to tell the initiator to go on with the ranging exchange).
-    0, 0, // byte 11/12: activity parameter, not used for activity code 0x02.
-    0, 0
-};  // All messages end with a 2-byte checksum automatically set by DW1000.
-
-static uint8 tx_final_msg[] = {  //
-    0x41, 0x88, // byte 0/1: frame control (0x8841 to indicate a data frame using 16-bit addressing).
-    0,          // byte 2: sequence number, incremented for each new frame.
-    0xCA, 0xDE, // byte 3/4 : PAN ID (0xDECA)
-    'W', 'A',  // byte 5/6: destination address, see NOTE 3 below.
-    'V', 'E',  // byte 7/8: source address, see NOTE 3 below.
-    0x23, // byte 9: function code (specific values to indicate which message it is in the ranging process). [Final message]
-    0, 0, 0, 0, // byte 10 -> 13: poll message transmission timestamp
-    0, 0, 0, 0, // byte 14 -> 17: response message reception timestamp
-    0, 0, 0, 0, // byte 18 -> 21: final message transmission timestamp.
-    0, 0
-}; // All messages end with a 2-byte checksum automatically set by DW1000.
-
-/* Length of the common part of the message (up to and including the function code, see NOTE 2 below). */
-#define ALL_MSG_COMMON_LEN 10
-/* Indexes to access some of the fields in the frames defined above. */
-#define ALL_MSG_SN_IDX 2
-#define FINAL_MSG_POLL_TX_TS_IDX 10
-#define FINAL_MSG_RESP_RX_TS_IDX 14
-#define FINAL_MSG_FINAL_TX_TS_IDX 18
 #define FINAL_MSG_TS_LEN 4
-/* Frame sequence number, incremented after each transmission. */
-static uint8 frame_seq_nb = 0;
-
-/* Buffer to store received response message.
-* Its size is adjusted to longest frame that this example code is supposed to handle. */
-#define RX_BUF_LEN 20
-static uint8 rx_buffer[RX_BUF_LEN];
-
-/* Hold copy of status register state here for reference, so reader can examine it at a breakpoint. */
-static uint32 status_reg = 0;
 
 /* UWB microsecond (uus) to device time unit (dtu, around 15.65 ps) conversion factor.
 * 1 uus = 512 / 499.2 µs and 1 µs = 499.2 * 128 dtu. */
@@ -114,6 +53,11 @@ static uint64 final_tx_ts;
 static uint64 get_tx_timestamp_u64(void);
 static uint64 get_rx_timestamp_u64(void);
 static void final_msg_set_ts(uint8 *ts_field, uint64 ts);
+Timer rxcallbackTime("rxcallback time",10);
+Metric<uint32_t> frame_length("frame_length ",10);
+
+
+
 
 DWM1000_Tag* DWM1000_Tag::_tag = 0;
 
@@ -125,8 +69,7 @@ DWM1000_Tag::DWM1000_Tag(const char* name) :
     _interrupts = 0;
     _resps = 0;
     _polls = 0;
-    _rxd=false;
-    _txd=false;
+
     _state=RCV_BLINK;
 
 }
@@ -181,10 +124,6 @@ int DWM1000_Tag::sendFinalMsg()
     return 0;// SEND FINAL MSG
 }
 
-Timer rxcallbackTime("rxcallback time",10);
-Metric<uint32_t> frame_length("frame_length ",10);
-
-
 
 Str strLog(100);
 
@@ -208,6 +147,17 @@ void DWM1000_Tag::updateAnchors()
         anchors.find(address)->second.update(_blinkMsg.sequence);
     }
 
+}
+
+void DWM1000_Tag::expireAnchors()
+{
+    std::map<uint16_t,RemoteAnchor>::iterator it;
+    for(it= anchors.begin(); it!=anchors.end(); ++it) {
+        if ( it->second.expired()) {
+            INFO(" expired anchor : %X ",it->first);
+            anchors.erase(it->first);
+        }
+    }
 }
 
 //_________________________________________________ IRQ handler
@@ -235,16 +185,16 @@ FrameType DWM1000_Tag::readMsg(const dwt_callback_data_t* signal)
 
         FrameType ft= DWM1000::getFrameType(_dwmMsg);
         if ( ft == FT_BLINK ) {
-            memcpy(_blinkMsg.buffer,_dwmMsg.buffer,frameLength);
+            memcpy(_blinkMsg.buffer,_dwmMsg.buffer,sizeof(_blinkMsg));
             _blinks++;
         } else if ( ft==FT_POLL ) {
-            memcpy(_pollMsg.buffer,_dwmMsg.buffer,frameLength);
+            memcpy(_pollMsg.buffer,_dwmMsg.buffer,sizeof(_pollMsg));
             _polls++;
         } else if ( ft==FT_RESP ) {
-            memcpy(_respMsg.buffer,_dwmMsg.buffer,frameLength);
+            memcpy(_respMsg.buffer,_dwmMsg.buffer,sizeof(_respMsg));
             _resps++;
         } else if ( ft==FT_FINAL ) {
-            memcpy(_finalMsg.buffer,_dwmMsg.buffer,frameLength);
+            memcpy(_finalMsg.buffer,_dwmMsg.buffer,sizeof(_finalMsg));
             _finals++;
         }
         return ft;
@@ -252,6 +202,11 @@ FrameType DWM1000_Tag::readMsg(const dwt_callback_data_t* signal)
         return FT_UNKNOWN;
     }
 }
+
+/*
+ * Finite State machine for event handling
+ *
+ * */
 
 void DWM1000_Tag::onDWEvent(const dwt_callback_data_t* signal)
 {
@@ -295,6 +250,7 @@ GOT_BLINK_RXD : {
 
         _state=SND_FINAL;
         createFinalMsg(_finalMsg,_respMsg);
+        _finals++;
         if ( sendFinalMsg() < 0 ) {
             WARN(" TXD FINAL FAILED ")
             goto WAIT_BLINK_RXD;
@@ -314,16 +270,14 @@ void DWM1000_Tag::setup()
     DWM1000::setup();
     INFO("DWM1000 TAG started.");
 
-    /* Set expected response's delay and timeout. See NOTE 4 and 5 below.
-    * As this example only handles one incoming frame with always the same delay and timeout, those values can be set here once for all. */
     dwt_setrxaftertxdelay(POLL_TX_TO_RESP_RX_DLY_UUS);
     dwt_setrxtimeout(RESP_RX_TIMEOUT_UUS);
     dwt_setcallbacks(txcallback,rxcallback);
-//    dwt_setautorxreenable(true);
     dwt_setdblrxbuffmode(false);
     dwt_setrxtimeout(0);
     dwt_rxenable(0);
     dwt_setinterrupt(DWT_INT_RFCG | DWT_INT_RFTO | DWT_INT_TFRS , 1); // enable
+    pinMode(DWM_PIN_IRQ, 0);// INPUT
     attachInterrupt(digitalPinToInterrupt(D2), dwt_isr, RISING);
     _count = 0;
     timeout(5000);
@@ -333,14 +287,10 @@ void DWM1000_Tag::setup()
 
 void DWM1000_Tag::loop()
 {
-    while ( digitalRead(D2)) {
-        dwt_isr();
-    }
+
 }
 
-//
-extern "C" char* bytesToHex(uint8_t* pb, uint32_t len);
-static int _timeoutCounter = 0;
+
 void DWM1000_Tag::onEvent(Cbor& msg)
 {
     Bytes bytes(0);
@@ -349,23 +299,8 @@ void DWM1000_Tag::onEvent(Cbor& msg)
 
 RECV : {
         while (true) {
-            INFO("reset");
-//           dwt_setautorxreenable(true);
             timeout(5000);
             PT_YIELD_UNTIL(timeout());
-
-
-            sys_mask = dwt_read32bitreg(SYS_MASK_ID);
-            sys_status = dwt_read32bitreg(SYS_STATUS_ID);
-            sys_state = dwt_read32bitreg(SYS_STATE_ID);
-            INFO(" SYS_MASK : %X SYS_STATUS : %X SYS_STATE: %X state : %s IRQ : %d", sys_mask,sys_status,sys_state,uid.label(_state),digitalRead(D2));
-            while ( digitalRead(D2)) {
-                sys_mask = dwt_read32bitreg(SYS_MASK_ID);
-                sys_status = dwt_read32bitreg(SYS_STATUS_ID);
-                sys_state = dwt_read32bitreg(SYS_STATE_ID);
-                INFO(" SYS_MASK : %X SYS_STATUS : %X SYS_STATE: %X state : %s IRQ : %d", sys_mask,sys_status,sys_state,uid.label(_state),digitalRead(D2));
-                dwt_isr();
-            }
 
             dwt_setrxtimeout(0); /* Clear reception timeout to start next ranging process. */
             dwt_rxenable(0); /* Activate reception immediately. */
@@ -374,21 +309,15 @@ RECV : {
             sys_status = dwt_read32bitreg(SYS_STATUS_ID);
             sys_state = dwt_read32bitreg(SYS_STATE_ID);
             INFO(" SYS_MASK : %X SYS_STATUS : %X SYS_STATE: %X state : %s IRQ : %d", sys_mask,sys_status,sys_state,uid.label(_state),digitalRead(D2));
-
-
-            std::map<uint16_t,RemoteAnchor>::iterator it;
-            for(it= anchors.begin(); it!=anchors.end(); ++it) {
-                if ( it->second.expired()) {
-                    INFO(" expired anchor : %X ",it->first);
-                    anchors.erase(it->first);
-                }
-            }
-
-            INFO(" interrupts : %d",_interrupts);
+            INFO(" interrupts : %d blinks : %d polls : %d resps : %d finals :%d",
+                 _interrupts,
+                 _blinks,
+                 _polls,
+                 _resps,
+                 _finals);
+            expireAnchors();
         }
     }
-
-
     PT_END()
     ;
 }
