@@ -3,7 +3,7 @@ ARDUINO_VARIANT = nodemcu
 TTY ?= USB0
 SERIAL_PORT ?= /dev/tty$(TTY)
 UPLOAD_SPEED ?= 921600 # 230400
-SERIAL_BAUD = 115200
+SERIAL_BAUD = 921600
 # uncomment and set the right serail baud according to your sketch (default to 115200)
 #SERIAL_BAUD = 115200
 # uncomment this to use the 1M SPIFFS mapping

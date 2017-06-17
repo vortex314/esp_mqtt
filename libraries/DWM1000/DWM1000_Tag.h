@@ -49,7 +49,9 @@ class DWM1000_Tag: public Actor,public DWM1000
     uint32_t _blinks;
     uint32_t _finals;
     uint32_t _frame_len;
+    BlinkMsg _blinkMsg;
     PollMsg _pollMsg;
+    RespMsg _respMsg;
     FinalMsg _finalMsg;
     DwmMsg _dwmMsg;
     Str _anchors;
@@ -73,12 +75,18 @@ public:
     void enableIsr();
     void onEvent(Cbor& msg);
     bool isRespMsg();
-    void sendFinalMsg();
+    int sendFinalMsg();
+    int sendPollMsg();
     static void rxcallback(const  dwt_callback_data_t* event) ;
     static void txcallback(const  dwt_callback_data_t* event) ;
     void onRxd(const  dwt_callback_data_t* signal);
     void onTxd(const  dwt_callback_data_t* signal);
+    void onDWEvent(const dwt_callback_data_t* signal);
+    bool getBlinkMsg( const dwt_callback_data_t* signal);
+    bool getRespMsg(const dwt_callback_data_t* signal);
     void testStl();
+    FrameType readMsg(const dwt_callback_data_t* signal);
+    void updateAnchors();
 private:
     bool _rxd;
     bool _txd;

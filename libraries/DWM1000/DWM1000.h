@@ -27,7 +27,11 @@ extern "C" {
 
 typedef void (*InterruptHandler)(void* instance);
 typedef enum {
-    FT_BLINK,FT_POLL,FT_RESP,FT_FINAL,FT_UNKNOWN
+    FT_BLINK=H("FT_BLINK"),
+    FT_POLL=H("FT_POLL"),
+    FT_RESP=H("FT_RESP"),
+    FT_FINAL=H("FT_FINAL"),
+    FT_UNKNOWN=H("FT_UNKNOWN")
 } FrameType;
 
 class DWM1000
@@ -68,7 +72,9 @@ public:
     static FrameType getFrameType(uint8_t fc[]);
     void createBlinkFrame(BlinkMsg& blink);
     void createPollMsg(PollMsg& pollMsg,uint16_t address);
+    void createPollMsg(PollMsg& pollMsg,BlinkMsg& blinkMsg);
     void createRespMsg(RespMsg& respMsg,PollMsg& pollMsg);
+    void createFinalMsg(FinalMsg& respMsg,RespMsg& pollMsg);
     void tune();
     uint8_t sequence() {
         return _sequence;

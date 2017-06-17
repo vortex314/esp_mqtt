@@ -62,7 +62,7 @@ DWM1000::DWM1000() : _spi(HSPI)
     _channel =  2;
     _prf = DWT_PRF_16M;
     _preambleLength = DWT_PLEN_1024;
-    _dataRate = DWT_BR_110K;
+    _dataRate = DWT_BR_850K;
     _pacSize = DWT_PAC32;
     _config = {  //
         _channel, // Channel number.
@@ -208,7 +208,7 @@ void DWM1000::createBlinkFrame(BlinkMsg& blink)
     blink.fc[0] = FC_1_BLINK;
     blink.sourceShort[1]=(_shortAddress>>8) & 0xFF ;
     blink.sourceShort[0]=(_shortAddress& 0xFF );
-    blink.sequence==_sequence++;
+    blink.sequence=_sequence++;
     for(int i=0; i<8; i++) blink.sourceLong[i]=_longAddress[7-i];
 }
 
@@ -230,15 +230,44 @@ void DWM1000::createPollMsg(PollMsg& pollMsg,uint16_t address)
 
 //=======================================================================
 
-void DWM1000::createRespMsg(RespMsg& respMsg,PollMsg& pollMsg){
+void DWM1000::createPollMsg(PollMsg& pollMsg,BlinkMsg& blinkMsg)
+{
+    pollMsg.fc[0]=FC_1_SHORT;
+    pollMsg.fc[1]=FC_2_SHORT;
+    pollMsg.function = FUNC_POLL_MSG;
+    pollMsg.sequence = blinkMsg.sequence;
+    pollMsg.panId[0]=0xCA;
+    pollMsg.panId[1]=0xDE;
+    memcpy(pollMsg.dst,blinkMsg.sourceShort,2);
+    pollMsg.src[0]=_shortAddress & 0xFF;
+    pollMsg.src[1]= _shortAddress >> 8;
+}
+
+//=======================================================================
+
+void DWM1000::createRespMsg(RespMsg& respMsg,PollMsg& pollMsg)
+{
     respMsg.fc[0]=FC_1_SHORT;
     respMsg.fc[1]=FC_2_SHORT;
     respMsg.function = FUNC_RESP_MSG;
+    respMsg.activity = 2;
     respMsg.sequence = pollMsg.sequence;
     respMsg.panId[0]=0xCA;
     respMsg.panId[1]=0xDE;
     memcpy(respMsg.dst,pollMsg.src,2);
     memcpy(respMsg.src,pollMsg.dst,2);
+}
+
+void DWM1000::createFinalMsg(FinalMsg& finalMsg,RespMsg& respMsg)
+{
+    finalMsg.fc[0]=FC_1_SHORT;
+    finalMsg.fc[1]=FC_2_SHORT;
+    finalMsg.function = FUNC_FINAL_MSG;
+    finalMsg.sequence = respMsg.sequence;
+    finalMsg.panId[0]=0xCA;
+    finalMsg.panId[1]=0xDE;
+    memcpy(finalMsg.dst,respMsg.src,2);
+    memcpy(finalMsg.src,respMsg.dst,2);
 }
 
 void DWM1000::setShortAddress(uint16_t address)

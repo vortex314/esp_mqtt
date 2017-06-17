@@ -28,7 +28,7 @@
 #include <Configurator.h>
 #include <Metric.h>
 
-uint32_t BAUDRATE = 115200;
+uint32_t BAUDRATE = 921600;
 
 Uid uid(200);
 EventBus eb(4096,1024);
@@ -93,7 +93,7 @@ void setup()
     INFO(" hostname : %s",hn);
     Sys::hostname(hn);
 
-    logger.level(Log::LOG_DEBUG);
+    logger.level(Log::LOG_INFO);
 
     config.get("wifi.ssid",ssid,"SSID");
     config.get("wifi.pswd",pswd,"PSWD");
