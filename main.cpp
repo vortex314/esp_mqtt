@@ -78,8 +78,6 @@ void setup()
     Serial.setDebugOutput(false);
     Sys::delay(1000);
     INFO("version : " __DATE__ " " __TIME__);
-//    INFO("WIFI_SSID '%s'  ",WIFI_SSID);
-
     waitConfig();
 
     String hostname;
@@ -97,9 +95,6 @@ void setup()
 
     config.get("wifi.ssid",ssid,"SSID");
     config.get("wifi.pswd",pswd,"PSWD");
-    Str par(10);
-    config.get("par1",par,"PAR");
-
 
     hostname=hn;
     strHostname = hn;
@@ -111,23 +106,11 @@ void setup()
 
     uint32_t port;
 //    config.clear();
-
-    /*   config.get("mqtt.host",strPswd,"limero.ddns.net");
-       config.get("mqtt.port",port,1883);
-       config.get("lpos.role",strPswd,"tag");
-       config.get("lpos.address",strPswd,"T1");*/
-
-
-
     eb.onAny().call([](Cbor& msg) { // Log all events
         Str str(256);
         eb.log(str,msg);
         DEBUG("%s",str.c_str());
     });
-
-    /*   eb.onEvent(systm.id(),EB_UID_IGNORE).call([](Cbor& msg) { // PUBLISH system events
-           router.ebToMqtt(msg);
-       }); */
 
     uid.add(labels,LABEL_COUNT);
     led.setMqtt(mqtt.id());
@@ -154,7 +137,7 @@ void setup()
         dwm1000Tag.setLongAddress(mac);
         dwm1000Tag.setup();
     } else { // otherwise an anchor
-    DWM1000Role=ANCHOR;
+        DWM1000Role=ANCHOR;
         dwm1000Anchor.setShortAddress(ESP.getChipId() & 0xFFFF);
         dwm1000Anchor.setLongAddress(mac);
         dwm1000Anchor.setup();
@@ -180,16 +163,12 @@ extern "C"  void loop()
 {
     eventIdle.stop();
     eventBusy.start();
-    
+
     eb.eventLoop();
     wifi.loop();
     mqtt.loop();
     mdns.loop();
-    if ( DWM1000Role==TAG)
-        dwm1000Tag.loop();
-    if ( DWM1000Role==ANCHOR)
-        dwm1000Anchor.loop();
-        
+
     eventBusy.stop();
     eventIdle.start();
 }

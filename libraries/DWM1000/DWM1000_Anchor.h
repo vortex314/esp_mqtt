@@ -36,8 +36,8 @@ class DWM1000_Anchor: public Actor,public DWM1000
     BlinkMsg _blinkMsg;
     DwmMsg _dwmMsg;
     Str _panAddress;
-    Cbor _irqEvent;
-    bool _hasIrqEvent;
+//    Cbor _irqEvent;
+//    bool _hasIrqEvent;
     uint32_t _distanceInCm;
     uint8_t _blinkSequence;
     enum { SND_BLINK=H("SND_BLINK"),

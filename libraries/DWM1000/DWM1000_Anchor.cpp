@@ -77,14 +77,14 @@ static void final_msg_get_ts(const uint8 *ts_field, uint32 *ts);
 DWM1000_Anchor* DWM1000_Anchor::_anchor;
 
 DWM1000_Anchor::DWM1000_Anchor(const char* name) :
-    Actor(name), _spi(HSPI), _irq(D2), _panAddress(3), _irqEvent(100)
+    Actor(name), _spi(HSPI), _irq(D2), _panAddress(3)
 {
     _count = 0;
     _interrupts = 0;
     _polls = 0;
     _finals = 0;
     _anchor = this;
-    _hasIrqEvent = false;
+//    _hasIrqEvent = false;
     _state = SND_BLINK;
 }
 
@@ -153,7 +153,9 @@ void DWM1000_Anchor::calcFinalMsg()
     tof = tof_dtu * DWT_TIME_UNITS;
     distance = tof * SPEED_OF_LIGHT;
     _distanceInCm = distance * 100.0;
-    INFO(" >>>>>>>>> distance : %f for TAG : %X ",distance,(_finalMsg.src[0]<<8) + _finalMsg.src[1]);
+    INFO(" >>>>>>>>> distance : %f for TAG : %X ",
+    distance,
+    (_finalMsg.src[1]<<8) + _finalMsg.src[0]);
 
 }
 
@@ -353,6 +355,8 @@ BLINK : {
                 eb.publicEvent(id(), H("distance")).addKeyValue(EB_DATA, distance);
                 eb.send();
             }
+            float adj = dwt_getrangebias(_channel,distance,_prf);
+            INFO(" >>>>> distance : %f adj : %f ",distance,adj);
         }
     }
 
@@ -365,7 +369,7 @@ BLINK : {
 
 void DWM1000_Anchor::loop()
 {
-    Str anchorLogStr(100);
+
 }
 
 /*! ------------------------------------------------------------------------------------------------------------------

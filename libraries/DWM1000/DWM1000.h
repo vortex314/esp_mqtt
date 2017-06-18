@@ -39,13 +39,9 @@ typedef enum {
 
 class DWM1000
 {
+    public: 
     uint32_t _count;
     Spi _spi;
-    /*    DWM1000* _me;
-        uint32_t _interrupts;
-        uint32_t _polls;
-        bool interrupt_detected;
-        */
 
     uint8_t _longAddress[8];
     uint16_t _shortAddress;
