@@ -78,7 +78,7 @@ void setup()
     Serial.setDebugOutput(false);
     Sys::delay(1000);
     INFO("version : " __DATE__ " " __TIME__);
-    INFO("WIFI_SSID '%s'  ",WIFI_SSID);
+//    INFO("WIFI_SSID '%s'  ",WIFI_SSID);
 
     waitConfig();
 
@@ -97,6 +97,9 @@ void setup()
 
     config.get("wifi.ssid",ssid,"SSID");
     config.get("wifi.pswd",pswd,"PSWD");
+    Str par(10);
+    config.get("par1",par,"PAR");
+
 
     hostname=hn;
     strHostname = hn;

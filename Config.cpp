@@ -69,7 +69,9 @@ void Config::clear()
 
 void Config::load()
 {
-    if ( json.length() ) return;
+    if ( json.length() ) {
+        return;
+    }
     EEPROM.begin(EEPROM_SIZE);
     if (!checkMagic()) {
         DEBUG(" initialize EEPROM with empty config.");
@@ -92,7 +94,7 @@ void Config::load()
     EEPROM.end();
 //	DEBUG(str.c_str());
     json.parse();
-    INFO(" json after load : %s",json.c_str());
+    INFO(" json config : %s",json.c_str());
 }
 
 void Config::save()
@@ -104,7 +106,7 @@ void Config::save()
     for (int i = 0; i < json.length(); i++)
         EEPROM.write(address++, json.peek(i));
     EEPROM.write(address++,'\0');
-    ASSERT_LOG(EEPROM.commit());
+//    ASSERT_LOG(EEPROM.commit());
     EEPROM.end();
 }
 
@@ -211,7 +213,7 @@ void Config::set(const char* key, Str& value)
         output.addBreak();
         json=output;
     }
-    INFO(" Config => SAVE  %s = %s",key,value.c_str());
+    INFO(" Config => SET  %s = %s",key,value.c_str());
     save();
     json.parse();
 //    DEBUG(" json after set : %s",json.c_str());
@@ -236,7 +238,7 @@ void Config::set(const char* key, uint32_t value)
         output.addBreak();
         json=output;
     }
-    INFO(" Config => SAVE  %s = %d",key,value);
+    INFO(" Config => SET  %s = %d",key,value);
     save();
     json.parse();
 }
@@ -247,28 +249,29 @@ void Config::get(const char* key, Str& value,
 
     load();
 //	DEBUG(" input :%s",input.c_str());
+//    json.append("{}");
     json.rewind();
     if (json.findKey(key)) {
         json.get(value);
     } else {
         value = defaultValue;
-//        set(key,value);
+        set(key,value);
     }
-    INFO(" Config => %s = %s ",key,value.c_str());
+    INFO(" Config => GET %s = %s ",key,value.c_str());
 }
 
 
 void Config::get(const char* key, uint32_t& value,
                  uint32_t defaultValue)
 {
-    load();
+//    load();
 //	DEBUG(" input :%s",input.c_str());
     json.rewind();
     if (json.findKey(key)) {
         json.get(value);
     } else {
         value = defaultValue;
-//        set(key,value);
+        set(key,value);
     }
-    INFO(" Config => %s = %d ",key,value);
+    INFO(" Config => GET %s = %d ",key,value);
 }

@@ -11,8 +11,7 @@
 Wifi::Wifi(const char* name) :
     Actor(name),_password(60),_ssid(30),_hostname(30)
 {
-    config.get("wifi.ssid",_ssid,"SSID_UNKNWON");
-    config.get("wifi.pswd",_password,"PSWD");
+
 }
 
 Wifi::~Wifi()
@@ -21,7 +20,8 @@ Wifi::~Wifi()
 
 void Wifi::init()
 {
-
+    _ssid="SSID";
+    _password="PSWD";
 }
 
 void Wifi::switchState(int st)
