@@ -21,7 +21,6 @@ extern "C" {
 #include "deca_sleep.h"
 }
 
-
 #define RNG_DELAY_MS 1000 /* Inter-ranging delay period, in milliseconds. */
 #define TX_ANT_DLY 16436 /* Default antenna delay values for 64 MHz PRF. See NOTE 1 below. */
 #define RX_ANT_DLY 16436
@@ -74,18 +73,34 @@ static uint64 get_tx_timestamp_u64(void);
 static uint64 get_rx_timestamp_u64(void);
 static void final_msg_get_ts(const uint8 *ts_field, uint32 *ts);
 
+
+
+Str strLogAnchor(100);
+
+void logAnchor(const char* s, uint32_t state, uint8_t* buffer,
+               uint32_t length)
+{
+    strLogAnchor.clear();
+    strLogAnchor.appendHex(buffer, length, ':');
+    INFO("%s %s %s", s, uid.label(state), strLogAnchor.c_str());
+}
 DWM1000_Anchor* DWM1000_Anchor::_anchor;
 
 DWM1000_Anchor::DWM1000_Anchor(const char* name) :
-    Actor(name), _spi(HSPI), _irq(D2), _panAddress(3)
+    Actor(name),
+    _spi(HSPI),
+    _irq(D2),
+    _panAddress(3),
+    _irqEvent(100),
+    _blinkTimer(3000)
 {
     _count = 0;
     _interrupts = 0;
     _polls = 0;
     _finals = 0;
     _anchor = this;
-//    _hasIrqEvent = false;
-    _state = SND_BLINK;
+    _hasIrqEvent = false;
+    _state = RCV_ANY;
 }
 
 DWM1000_Anchor::~DWM1000_Anchor()
@@ -93,17 +108,26 @@ DWM1000_Anchor::~DWM1000_Anchor()
 
 }
 
+void DWM1000_Anchor::sendBlinkMsg()
+{
+    int erc;
+    createBlinkFrame(_blinkMsg);
+    dwt_writetxdata(sizeof(_blinkMsg), _blinkMsg.buffer, 0);
+    dwt_writetxfctrl(sizeof(_blinkMsg), 0);
+    erc = dwt_starttx(DWT_START_TX_IMMEDIATE );
+    if ( erc < 0) WARN("BLINK TXD FAILED");
+    INFO("blink ");
+}
 
 int DWM1000_Anchor::sendRespMsg()
 {
     uint32 resp_tx_time;
 
-
     poll_rx_ts = get_rx_timestamp_u64(); /* Retrieve poll reception timestamp. */
 
     /* Set send time for response. See NOTE 8 below. */
-    resp_tx_time = (poll_rx_ts
-                    + (POLL_RX_TO_RESP_TX_DLY_UUS * UUS_TO_DWT_TIME)) >> 8;
+    resp_tx_time = (poll_rx_ts + (POLL_RX_TO_RESP_TX_DLY_UUS * UUS_TO_DWT_TIME))
+                   >> 8;
 
     dwt_writetxdata(sizeof(_respMsg), _respMsg.buffer, 0);
     dwt_writetxfctrl(sizeof(_respMsg), 0);
@@ -111,8 +135,7 @@ int DWM1000_Anchor::sendRespMsg()
     dwt_setdelayedtrxtime(resp_tx_time);
     dwt_setrxaftertxdelay(RESP_TX_TO_FINAL_RX_DLY_UUS);
     dwt_setrxtimeout(FINAL_RX_TIMEOUT_UUS);
-    _resps++;
-    if ( dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED) < 0) {
+    if (dwt_starttx(DWT_START_TX_DELAYED | DWT_RESPONSE_EXPECTED) < 0) {
         return -1;
     }
     return 0;
@@ -132,12 +155,9 @@ void DWM1000_Anchor::calcFinalMsg()
     final_rx_ts = get_rx_timestamp_u64();
 
     /* Get timestamps embedded in the final message. */
-    final_msg_get_ts(&_dwmMsg.buffer[FINAL_MSG_POLL_TX_TS_IDX],
-                     &poll_tx_ts);
-    final_msg_get_ts(&_dwmMsg.buffer[FINAL_MSG_RESP_RX_TS_IDX],
-                     &resp_rx_ts);
-    final_msg_get_ts(&_dwmMsg.buffer[FINAL_MSG_FINAL_TX_TS_IDX],
-                     &final_tx_ts);
+    final_msg_get_ts(&_dwmMsg.buffer[FINAL_MSG_POLL_TX_TS_IDX], &poll_tx_ts);
+    final_msg_get_ts(&_dwmMsg.buffer[FINAL_MSG_RESP_RX_TS_IDX], &resp_rx_ts);
+    final_msg_get_ts(&_dwmMsg.buffer[FINAL_MSG_FINAL_TX_TS_IDX], &final_tx_ts);
 
     /* Compute time of flight. 32-bit subtractions give correct answers even if clock has wrapped. See NOTE 10 below. */
     poll_rx_ts_32 = (uint32) poll_rx_ts;
@@ -147,39 +167,40 @@ void DWM1000_Anchor::calcFinalMsg()
     Rb = (double) (final_rx_ts_32 - resp_tx_ts_32);
     Da = (double) (final_tx_ts - resp_rx_ts);
     Db = (double) (resp_tx_ts_32 - poll_rx_ts_32);
-    tof_dtu = (int64) ((Ra * Rb - Da * Db)
-                       / (Ra + Rb + Da + Db));
+    tof_dtu = (int64) ((Ra * Rb - Da * Db) / (Ra + Rb + Da + Db));
 
     tof = tof_dtu * DWT_TIME_UNITS;
     distance = tof * SPEED_OF_LIGHT;
     _distanceInCm = distance * 100.0;
-    INFO(" >>>>>>>>> distance : %f for TAG : %X ",
-    distance,
-    (_finalMsg.src[1]<<8) + _finalMsg.src[0]);
+    INFO(" >>>>>>>>> distance : %f for TAG : %X ", distance,
+         (_finalMsg.src[0] << 8) + _finalMsg.src[1]);
 
 }
 
 //===================================================================================
 
-
 FrameType DWM1000_Anchor::readMsg(const dwt_callback_data_t* signal)
 {
     uint32_t frameLength = signal->datalength;
-    if ( frameLength <= sizeof(_dwmMsg)) {
+    if (frameLength <= sizeof(_dwmMsg)) {
         dwt_readrxdata(_dwmMsg.buffer, frameLength, 0);
 
-        FrameType ft= DWM1000::getFrameType(_dwmMsg);
-        if ( ft == FT_BLINK ) {
-            memcpy(_blinkMsg.buffer,_dwmMsg.buffer,sizeof(_blinkMsg));
+        FrameType ft = DWM1000::getFrameType(_dwmMsg);
+        if (ft == FT_BLINK) {
+            memcpy(_blinkMsg.buffer, _dwmMsg.buffer, sizeof(_blinkMsg));
+            INFO(" blink %X : %d",_blinkMsg.getSrc(),_blinkMsg.sequence);
             _blinks++;
-        } else if ( ft==FT_POLL ) {
-            memcpy(_pollMsg.buffer,_dwmMsg.buffer,sizeof(_pollMsg));
+        } else if (ft == FT_POLL) {
+            memcpy(_pollMsg.buffer, _dwmMsg.buffer, sizeof(_pollMsg));
+            INFO(" poll %X : %d",_pollMsg.getSrc(),_pollMsg.sequence);
             _polls++;
-        } else if ( ft==FT_RESP ) {
-            memcpy(_respMsg.buffer,_dwmMsg.buffer,sizeof(_respMsg));
+        } else if (ft == FT_RESP) {
+            memcpy(_respMsg.buffer, _dwmMsg.buffer, sizeof(_respMsg));
+            INFO(" resp %X : %d ",_respMsg.getSrc(),_respMsg.sequence);
             _resps++;
-        } else if ( ft==FT_FINAL ) {
-            memcpy(_finalMsg.buffer,_dwmMsg.buffer,sizeof(_finalMsg));
+        } else if (ft == FT_FINAL) {
+            memcpy(_finalMsg.buffer, _dwmMsg.buffer, sizeof(_finalMsg));
+            INFO(" final %X : %d ",_finalMsg.getSrc(),_finalMsg.sequence);
             _finals++;
         }
         return ft;
@@ -188,97 +209,80 @@ FrameType DWM1000_Anchor::readMsg(const dwt_callback_data_t* signal)
     }
 }
 
-
-
 //===================================================================================
 //_________________________________________________ INITIALIZE SPI
 //
 
-Timer anchorRxcallbackTime("rxcallback time",10);
 
 
-
-
-
-Str strLogAnchor(100);
-
-void logAnchor(const char* s,uint32_t state,uint8_t* buffer,uint32_t length )
+void DWM1000_Anchor::FSM(const dwt_callback_data_t* signal)
 {
-    strLogAnchor.clear();
-    strLogAnchor.appendHex(buffer,length,':');
-    DEBUG("%s %s %s",s,uid.label(state),strLogAnchor.c_str());
-}
-
-void DWM1000_Anchor::onDWEvent(const dwt_callback_data_t* signal)
-{
-    static uint32_t _ptLine=0;
-    FrameType ft;
+    static uint32_t _ptLine;
     PT_BEGIN();
-WAIT_BLINK_TXD : {
-        _state=SND_BLINK;
-        PT_YIELD_UNTIL(signal->event == DWT_SIG_TX_DONE && _state==SND_BLINK);
-        logAnchor(" TXD BLINK ",_state,_blinkMsg.buffer,sizeof(_blinkMsg));
-    }
-WAIT_POLL_RXD : {
+WAIT_RXD: {
+        while (true) {
+            _state = RCV_ANY;
+            // enable            dwt_setrxaftertxdelay() read
+            PT_YIELD_UNTIL(true);
+            if (signal->event == DWT_SIG_RX_OKAY) {
+                FrameType ft = readMsg(signal);
+                if (ft == FT_POLL && _dwmMsg.getDst() == _shortAddress) {
+                    _resps++;
+                    createRespMsg(_respMsg,_pollMsg);
+                    INFO("resp %X : %d",_respMsg.getDst(),_respMsg.sequence);
+                    if (sendRespMsg()) WARN("FAIL send resp");
+                    goto WAIT_FINAL;
 
-        _state=RCV_POLL;
-
-        PT_YIELD_UNTIL( signal->event==DWT_SIG_RX_TIMEOUT || signal->event==DWT_SIG_RX_OKAY  );
-        if ( signal->event==DWT_SIG_RX_TIMEOUT ) {
-            WARN(" RXD TIMEOUT ");
-            goto WAIT_BLINK_TXD;
-        } ;
-        ft=readMsg(signal);
-        if  ( ft==FT_POLL) {
-            goto GOT_POLL_RXD;
-        }
-    }
-GOT_POLL_RXD : {
-        logAnchor(" RXD POLL ",_state,_pollMsg.buffer,sizeof(_pollMsg));
-
-        _state=SND_RESP;
-        createRespMsg(_respMsg,_pollMsg);
-        if ( sendRespMsg() < 0 ) {
-            WARN(" TXD RESP FAILED ");
-            goto WAIT_BLINK_TXD;
-        }
-        logAnchor(" TXD RESP ",_state,_respMsg.buffer,sizeof(_respMsg));
-        PT_YIELD_UNTIL( signal->event == DWT_SIG_TX_DONE  );
-    };
-WAIT_FINAL_RXD : {
-        _state = RCV_FINAL;
-        PT_YIELD_UNTIL( signal->event==DWT_SIG_RX_TIMEOUT  || signal->event == DWT_SIG_RX_OKAY );
-        if ( signal->event==DWT_SIG_RX_TIMEOUT ) {
-            WARN(" RXD TIMEOUT ");
-            goto WAIT_BLINK_TXD;
+                } else {
+                    WARN("unknown message");
+                }
+            } else if (signal->event == DWT_SIG_RX_TIMEOUT) {
+                if (_blinkTimer.expired()) {
+                    sendBlinkMsg();
+                    _blinks++;
+                    _blinkTimer.reset();
+                }
+            } else if (signal->event == DWT_SIG_TX_DONE  ) {
+            } else {
+                WARN("unhandled event %d",signal->event);
+            }
+            dwt_write32bitreg(SYS_STATUS_ID,SYS_STATUS_ALL_RX_GOOD | SYS_STATUS_ALL_RX_ERR);
+            dwt_setrxtimeout(60000); // 60 msec ?
+            dwt_rxenable(0);
         };
-        ft=readMsg(signal);
-        if (ft==FT_FINAL) {
-            logAnchor(" RXD FINAL ",_state,_finalMsg.buffer,sizeof(_finalMsg));
-            calcFinalMsg();
-            goto WAIT_BLINK_TXD;
-        } else if ( ft==FT_POLL) {
-            goto GOT_POLL_RXD;
-        } else {
-            logAnchor(" RXD INVALID",_state,_dwmMsg.buffer,sizeof(_dwmMsg));
-            goto WAIT_BLINK_TXD;
+    };
+WAIT_FINAL: {
+        _state = RCV_FINAL;
+        PT_YIELD_UNTIL(true);
+        if (signal->event == DWT_SIG_RX_OKAY) {
+            FrameType ft = readMsg(signal);
+            if (ft == FT_FINAL) {
+                calcFinalMsg();
+            } else {
+                WARN("");
+            }
         }
-        goto WAIT_BLINK_TXD;
-    }
+        dwt_write32bitreg(SYS_STATUS_ID,SYS_STATUS_ALL_RX_GOOD | SYS_STATUS_ALL_RX_ERR);
+        dwt_setrxtimeout(60000); // 60 msec ?
+        dwt_rxenable(0);
+
+        goto WAIT_RXD;
+    };
     PT_END();
 }
+
 //_________________________________________________ IRQ handler
 
-void DWM1000_Anchor::rxcallback(const  dwt_callback_data_t* signal)
+void DWM1000_Anchor::rxcallback(const dwt_callback_data_t* signal)
 {
     _anchor->_interrupts++;
-    _anchor->onDWEvent(signal);
+    _anchor->FSM(signal);
 }
 
-void DWM1000_Anchor::txcallback( const dwt_callback_data_t* signal)
+void DWM1000_Anchor::txcallback(const dwt_callback_data_t* signal)
 {
     _anchor->_interrupts++;
-    _anchor->onDWEvent(signal);
+    _anchor->FSM(signal);
 }
 
 //===================================================================================
@@ -288,19 +292,15 @@ void DWM1000_Anchor::setup()
 
     DWM1000::setup();
     INFO("DWM1000 ANCHOR started.");
-    dwt_setcallbacks(txcallback,rxcallback);
-//   dwt_setautorxreenable(true);
+    dwt_setcallbacks(txcallback, rxcallback);
     dwt_setdblrxbuffmode(false);
-    dwt_setrxtimeout(0);
-    dwt_rxenable(0);
-    dwt_enableframefilter(DWT_FF_DATA_EN | DWT_FF_BEACON_EN );
-    dwt_setinterrupt(DWT_INT_RFCG | DWT_INT_RFTO | DWT_INT_TFRS, 1); // enable
+    dwt_enableframefilter(DWT_FF_DATA_EN | DWT_FF_BEACON_EN);
+    dwt_setinterrupt(DWT_INT_RFCG | DWT_INT_RFTO , 1); // enable
     attachInterrupt(digitalPinToInterrupt(D2), dwt_isr, RISING);
-
     /* Set expected response's delay and timeout. See NOTE 4 and 5 below.
      * As this example only handles one incoming frame with always the same delay and timeout, those values can be set here once for all. */
     /*    dwt_setrxaftertxdelay(POLL_TX_TO_RESP_RX_DLY_UUS);
-        dwt_setrxtimeout(RESP_RX_TIMEOUT_UUS);*/
+     dwt_setrxtimeout(RESP_RX_TIMEOUT_UUS);*/
 
     _count = 0;
 
@@ -309,67 +309,65 @@ void DWM1000_Anchor::setup()
 
 }
 
-Timer opsTime("DW1000 Action",10);
+Timer opsTime("DW1000 Action", 10);
 uint64_t _startTime;
-
 
 void DWM1000_Anchor::onEvent(Cbor& msg)
 {
-
-    uint32_t sys_mask,sys_status,sys_state;
-    static uint32_t oldFinals=0;
+    static uint32_t oldInterrupts;
+    uint32_t sys_mask, sys_status, sys_state;
+    static uint32_t oldFinals = 0;
     int erc;
 
     PT_BEGIN()
 
-BLINK : {
-
-
+INIT: {
+        _blinkTimer.reset();
+        dwt_setautorxreenable(true);
+        dwt_setrxtimeout(0);
+        dwt_rxenable(0);
+        timeout(1000);
+        oldInterrupts=_interrupts;
+        PT_YIELD_UNTIL(timeout());
+    }
+ENABLE : {
         while(true) {
-            opsTime.start();
-//            dwt_write32bitreg(SYS_STATUS_ID,  SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_ERR | SYS_STATUS_ALL_TX);
-            _state = SND_BLINK;
-            dwt_setrxaftertxdelay(0);
-            dwt_setrxtimeout(5000);
-            createBlinkFrame(_blinkMsg);
-            dwt_writetxdata(sizeof(_blinkMsg), _blinkMsg.buffer, 0);
-            dwt_writetxfctrl(sizeof(_blinkMsg), 0);
-            erc =dwt_starttx(DWT_START_TX_IMMEDIATE| DWT_RESPONSE_EXPECTED );
-            _blinks++;
-            opsTime.stop();
-
-            timeout(300);
+            timeout(1000);
             PT_YIELD_UNTIL(timeout());
-            sys_mask = dwt_read32bitreg(SYS_MASK_ID);
-            sys_status = dwt_read32bitreg(SYS_STATUS_ID);
-            sys_state = dwt_read32bitreg(SYS_STATE_ID);
-            INFO(" SYS_MASK : %X SYS_STATUS : %X SYS_STATE: %X state : %s IRQ : %d", sys_mask,sys_status,sys_state,uid.label(_state),digitalRead(D2));
-            INFO(" interrupts : %d blinks : %d polls : %d resps : %d finals :%d",
-                 _interrupts,
-                 _blinks,
-                 _polls,
-                 _resps,
-                 _finals);
-            if ( _finals != oldFinals ) {
-                oldFinals=_finals;
-                eb.publicEvent(id(), H("distance")).addKeyValue(EB_DATA, distance);
+            if ( oldInterrupts == _interrupts) {
+                sys_mask = dwt_read32bitreg(SYS_MASK_ID);
+                sys_status = dwt_read32bitreg(SYS_STATUS_ID);
+                sys_state = dwt_read32bitreg(SYS_STATE_ID);
+                INFO(
+                    " SYS_MASK : %X SYS_STATUS : %X SYS_STATE: %X state : %s IRQ : %d",
+                    sys_mask, sys_status, sys_state, uid.label(_state),
+                    digitalRead(D2));
+                WARN(" enable RXD ");
+                dwt_setrxtimeout(60000);
+                dwt_rxenable(0);
+            }
+            oldInterrupts = _interrupts;
+
+            INFO(
+                " interrupts : %d blinks : %d polls : %d resps : %d finals :%d",
+                _interrupts, _blinks, _polls, _resps, _finals);
+
+            if (_finals != oldFinals) {
+                oldFinals = _finals;
+                eb.publicEvent(id(), H("distance")).addKeyValue(EB_DATA,
+                        distance);
                 eb.send();
             }
-            float adj = dwt_getrangebias(_channel,distance,_prf);
-            INFO(" >>>>> distance : %f adj : %f ",distance,adj);
+
         }
     }
 
-
-
-    PT_END()
-    ;
+    PT_END();
 }
-
 
 void DWM1000_Anchor::loop()
 {
-
+    Str anchorLogStr(100);
 }
 
 /*! ------------------------------------------------------------------------------------------------------------------

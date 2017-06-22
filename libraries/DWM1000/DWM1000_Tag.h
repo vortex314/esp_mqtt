@@ -37,6 +37,8 @@ public:
     }
 };
 
+
+
 class DWM1000_Tag: public Actor,public DWM1000
 {
     uint32_t _count;
@@ -60,7 +62,13 @@ class DWM1000_Tag: public Actor,public DWM1000
     Str _panAddress;
     uint8_t _rxdSequence;
     std::map<uint16_t,RemoteAnchor> anchors;
-    enum { RCV_BLINK=H("RCV_BLINK"),SND_POLL=H("SND_POLL"),RCV_RESP=H("RCV_RESP"),SND_FINAL=H("SND_FINAL") } _state;
+    typedef enum  { RCV_ANY=H("RCV_ANY"),
+                    RCV_RESP=H("RCV_RESP"),
+                    RCV_FINAL=H("SND_FINAL")
+                  } State;
+    uint16_t _currentAnchor;
+    State _state;
+    Timeout _pollTimer;
 public:
     DWM1000_Tag(const char* name);
     virtual ~DWM1000_Tag();
@@ -79,10 +87,14 @@ public:
     int sendPollMsg();
     static void rxcallback(const  dwt_callback_data_t* event) ;
     static void txcallback(const  dwt_callback_data_t* event) ;
+    void FSM(const dwt_callback_data_t* signal);
     void onDWEvent(const dwt_callback_data_t* signal);
     FrameType readMsg(const dwt_callback_data_t* signal);
-    void updateAnchors();
+    void updateAnchors(uint16_t address,uint8_t sequence);
     void expireAnchors();
+    bool pollAnchors();
+    void handleBlinkMsg();
+    void handleRespMsg();
 private:
 
 };

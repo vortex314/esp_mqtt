@@ -33,6 +33,12 @@ typedef union {
             } __attribute__ ((packed)) finalMsg;
         };
     } __attribute__ ((packed)) ;
+    uint16_t getSrc() {
+    	return src[0]+(src[1]<<8);
+    };
+    uint16_t getDst() {
+    	return dst[0]+(dst[1]<<8);
+    }
 } __attribute__ ((packed)) DwmMsg;
 
 typedef  union {
@@ -46,6 +52,12 @@ typedef  union {
         uint8_t function;
         uint8_t crc[2];
     } ;
+    uint16_t getSrc() {
+    	return src[0]+(src[1]<<8);
+    };
+    uint16_t getDst() {
+    	return dst[0]+(dst[1]<<8);
+    }
 } __attribute__ ((packed)) PollMsg ;
 
 typedef  union {
@@ -61,6 +73,12 @@ typedef  union {
         uint8_t activityParameter[2];
         uint8_t crc[2];
     } ;
+    uint16_t getSrc() {
+    	return src[0]+(src[1]<<8);
+    };
+    uint16_t getDst() {
+    	return dst[0]+(dst[1]<<8);
+    }
 } __attribute__ ((packed)) RespMsg ;
 
 typedef  union {
@@ -77,6 +95,12 @@ typedef  union {
         uint8_t finalTimestamp[4];
         uint8_t crc[2];
     } ;
+    uint16_t getSrc() {
+    	return src[0]+(src[1]<<8);
+    };
+    uint16_t getDst() {
+    	return dst[0]+(dst[1]<<8);
+    }
 } __attribute__ ((packed)) FinalMsg ;
 
 typedef  union {
@@ -88,6 +112,9 @@ typedef  union {
         uint8_t sourceShort[2];
         uint8_t crc[2];
     } ;
+    uint16_t getSrc() {
+    	return sourceShort[0]+(sourceShort[1]<<8);
+    };
 } __attribute__ ((packed)) BlinkMsg ;
 
 #define FUNC_POLL_MSG  0x21

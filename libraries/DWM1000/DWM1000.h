@@ -12,7 +12,6 @@
 #include <Peripheral.h>
 #include <DWM1000_Message.h>
 
-
 extern "C" {
 #include <spi.h>
 #include <gpio_c.h>
@@ -27,21 +26,44 @@ extern "C" {
 
 typedef void (*InterruptHandler)(void* instance);
 typedef enum {
-    FT_BLINK=H("FT_BLINK"),
-    FT_POLL=H("FT_POLL"),
-    FT_RESP=H("FT_RESP"),
-    FT_FINAL=H("FT_FINAL"),
-    FT_UNKNOWN=H("FT_UNKNOWN")
+    FT_BLINK = H("FT_BLINK"),
+    FT_POLL = H("FT_POLL"),
+    FT_RESP = H("FT_RESP"),
+    FT_FINAL = H("FT_FINAL"),
+    FT_UNKNOWN = H("FT_UNKNOWN")
 } FrameType;
 
 #define DWM_PIN_RESET D1
 #define DWM_PIN_IRQ D2
 
+class Timeout
+{
+public:
+    uint32_t _interval;
+    uint64_t _nextTimeout;
+    Timeout(uint32_t interval) {
+        _interval = interval;
+        _nextTimeout = UINT64_MAX;
+    }
+    void setInterval(uint32_t interval);
+    void reset() {
+        _nextTimeout = Sys::millis() + _interval;
+    }
+    bool expired() {
+        return Sys::millis() > _nextTimeout;
+    };
+};
+
 class DWM1000
 {
-    public: 
+public:
     uint32_t _count;
     Spi _spi;
+    /*    DWM1000* _me;
+     uint32_t _interrupts;
+     uint32_t _polls;
+     bool interrupt_detected;
+     */
 
     uint8_t _longAddress[8];
     uint16_t _shortAddress;
@@ -53,6 +75,10 @@ class DWM1000
     uint8_t _dataRate;
     uint8_t _pacSize;
     uint8_t _sequence;
+    typedef enum  {
+        RCV_ANY = H("RCV_ANY"), RCV_RESP = H("SND_POLL")
+    } State;
+
 
 public:
     DWM1000();
@@ -70,10 +96,11 @@ public:
     static FrameType getFrameType(DwmMsg& msg);
     static FrameType getFrameType(uint8_t fc[]);
     void createBlinkFrame(BlinkMsg& blink);
-    void createPollMsg(PollMsg& pollMsg,uint16_t address);
-    void createPollMsg(PollMsg& pollMsg,BlinkMsg& blinkMsg);
-    void createRespMsg(RespMsg& respMsg,PollMsg& pollMsg);
-    void createFinalMsg(FinalMsg& respMsg,RespMsg& pollMsg);
+    void createPollMsg(PollMsg& pollMsg, uint16_t address);
+    void createPollMsg(PollMsg& pollMsg, BlinkMsg& blinkMsg);
+    void createRespMsg(RespMsg& respMsg, PollMsg& pollMsg);
+    void createFinalMsg(FinalMsg& respMsg, RespMsg& pollMsg);
+    bool isForMe(DwmMsg& dmwMsg);
     void tune();
     uint8_t sequence() {
         return _sequence;
@@ -82,7 +109,6 @@ public:
 private:
 
     DwmMsg _rcvMsg[MAX_MESSAGE];
-
 
 };
 

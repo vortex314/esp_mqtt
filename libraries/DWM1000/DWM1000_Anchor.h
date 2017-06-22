@@ -36,15 +36,17 @@ class DWM1000_Anchor: public Actor,public DWM1000
     BlinkMsg _blinkMsg;
     DwmMsg _dwmMsg;
     Str _panAddress;
-//    Cbor _irqEvent;
-//    bool _hasIrqEvent;
+    Cbor _irqEvent;
+    bool _hasIrqEvent;
     uint32_t _distanceInCm;
     uint8_t _blinkSequence;
-    enum { SND_BLINK=H("SND_BLINK"),
-           RCV_POLL=H("RCV_POLL"),
-           SND_RESP=H("SND_RESP"),
-           RCV_FINAL=H("RCV_FINAL")
-         } _state;
+    typedef  enum { RCV_ANY=H("RCV_ANY"),
+                    RCV_POLL=H("RCV_POLL"),
+                    RCV_FINAL=H("RCV_FINAL")
+                  } State;
+    State _state;
+    Timeout _blinkTimer;
+
 
 public:
     DWM1000_Anchor(const char* name);
@@ -64,8 +66,13 @@ public:
     static void rxcallback(const  dwt_callback_data_t* event) ;
     static void txcallback(const  dwt_callback_data_t* event) ;
 
+    void FSM(const dwt_callback_data_t* signal);
     void onDWEvent(const  dwt_callback_data_t* event);
     FrameType readMsg(const dwt_callback_data_t* signal);
+    void sendBlinkMsg();
+    void handleFinalMsg();
+
+
 };
 
 #endif /* DWM1000_Anchor_Tag_H_ */
