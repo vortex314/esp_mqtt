@@ -63,6 +63,7 @@ public:
     int sendRespMsg();
 
     void loop();
+    void update(uint16_t srcAddress,uint8_t sequence);
     static void rxcallback(const  dwt_callback_data_t* event) ;
     static void txcallback(const  dwt_callback_data_t* event) ;
 

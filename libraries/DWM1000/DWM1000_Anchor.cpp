@@ -210,9 +210,12 @@ FrameType DWM1000_Anchor::readMsg(const dwt_callback_data_t* signal)
 }
 
 //===================================================================================
-//_________________________________________________ INITIALIZE SPI
-//
-
+void DWM1000_Anchor::update(uint16_t src,uint8_t sequence) {
+    if ( sequence > (_lastSequence+1)) {
+        WARN("dropped frames : %d",sequence-_lastSequence);
+    }
+    _lastSequence=sequence;
+}
 
 
 void DWM1000_Anchor::FSM(const dwt_callback_data_t* signal)
@@ -228,6 +231,7 @@ WAIT_RXD: {
                 FrameType ft = readMsg(signal);
                 if (ft == FT_POLL && _dwmMsg.getDst() == _shortAddress) {
                     _resps++;
+                    update(_dwmMsg.getSrc(),_dwmMsg.sequence);
                     createRespMsg(_respMsg,_pollMsg);
                     INFO("resp %X : %d",_respMsg.getDst(),_respMsg.sequence);
                     if (sendRespMsg()) WARN("FAIL send resp");

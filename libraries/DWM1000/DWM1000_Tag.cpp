@@ -156,14 +156,16 @@ bool DWM1000_Tag::pollAnchors()
 //    INFO(" anchors : %d in %d ",_anchorIndex,anchors.size());
     if (anchors.size() == 0)
         return false;
-    if (++_anchorIndex > anchors.size())
+    if (++_anchorIndex > anchors.size()) {
         _anchorIndex = 0;
+        _sequence++;
+    }
     uint32_t count = 0;
     std::map<uint16_t, RemoteAnchor>::iterator it;
     for (it = anchors.begin(); it != anchors.end(); ++it) {
         if (count++ == _anchorIndex) {
             _currentAnchor = it->second._address;
-            createPollMsg(_pollMsg,_currentAnchor);
+            createPollMsg(_pollMsg,_currentAnchor,_sequence);
             if ( sendPollMsg() < 0 ) WARN("POLL failed");
             INFO("poll %X : %d",_currentAnchor,_pollMsg.sequence);
             return true;

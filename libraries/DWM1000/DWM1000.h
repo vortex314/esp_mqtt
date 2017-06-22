@@ -96,7 +96,7 @@ public:
     static FrameType getFrameType(DwmMsg& msg);
     static FrameType getFrameType(uint8_t fc[]);
     void createBlinkFrame(BlinkMsg& blink);
-    void createPollMsg(PollMsg& pollMsg, uint16_t address);
+    void createPollMsg(PollMsg& pollMsg, uint16_t address,uint8_t sequence);
     void createPollMsg(PollMsg& pollMsg, BlinkMsg& blinkMsg);
     void createRespMsg(RespMsg& respMsg, PollMsg& pollMsg);
     void createFinalMsg(FinalMsg& respMsg, RespMsg& pollMsg);
