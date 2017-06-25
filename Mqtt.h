@@ -22,9 +22,9 @@
 class Mqtt : public Actor
 {
 private:
-    PubSubClient* _client;
-	WiFiClient* _wifi_client;
-	int _client_state;
+
+    WiFiClient* _wifi_client;
+    int _client_state;
 
     Str _host;
     uint16_t _port;
@@ -41,29 +41,33 @@ private:
     uint16_t _lastSrc;
     int _fd[2];   // pipe fd to wakeup in select
     Str _prefix;
-	Str _topic;
-	Bytes _message;
-	static void callback(char* topic,byte* message,uint32_t length);
+    Str _topic;
+    Bytes _message;
+    static void callback(char* topic,byte* message,uint32_t length);
+
 
 public:
+    static Mqtt* _thisMqtt;
 
+    PubSubClient* _client;
+    void setLog(bool on);
     Mqtt(const char* name,uint32_t maxSize);
     virtual ~Mqtt();
     void setup();
     void onEvent(Cbor& cbor);
     void onActorRegister(Cbor& cbor);
-
- //   static void onConnectionLost(void *context, char *cause);
+    void log(char* start,uint32_t length);
+//   static void onConnectionLost(void *context, char *cause);
 //    static int onMessage(void *context, char *topicName, int topicLen, MQTTAsync_message *message);
 
     void disconnect(Cbor& cbor);
- //   static void onDisconnect(void* context, MQTTAsync_successData* response);
+//   static void onDisconnect(void* context, MQTTAsync_successData* response);
     void connect(Cbor& cbor);
- //   static void onConnectFailure(void* context, MQTTAsync_failureData* response);
+//   static void onConnectFailure(void* context, MQTTAsync_failureData* response);
 //    static void onConnectSuccess(void* context, MQTTAsync_successData* response);
     void subscribe(Cbor& cbor);
 //    static void onSubscribeSuccess(void* context, MQTTAsync_successData* response);
- //   static void onSubscribeFailure(void* context, MQTTAsync_failureData* response);
+//   static void onSubscribeFailure(void* context, MQTTAsync_failureData* response);
     void publish(Cbor& cbor);
 //    static void onPublishSuccess(void* context, MQTTAsync_successData* response);
 //    static void onPublishFailure(void* context, MQTTAsync_failureData* response);
@@ -72,7 +76,7 @@ public:
 
     int fd();
     void wakeup();
-	void loop();
+    void loop();
 
 };
 

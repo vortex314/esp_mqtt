@@ -27,6 +27,13 @@
 #include <IrqTester.h>
 #include <Configurator.h>
 #include <Metric.h>
+#include <WiFiUdp.h>
+#include <SysLog.h>
+
+extern "C" {
+#include "user_interface.h"
+
+};
 
 uint32_t BAUDRATE = 921600;
 
@@ -38,21 +45,14 @@ Log logger(256);
 
 
 //________________________________________________Se_________________
-#ifndef WIFI_SSID
-#define WIFI_SSID "YOUR_SSID"
-#endif
-#ifndef WIFI_PSWD
-#define WIFI_PSWD "YOUR_PASSWORD"
-#endif
+
 Str line(20);
-
-
 
 #include <main_labels.h>
 
 
 Wifi wifi("wifi");
-mDNS mdns(wifi);
+//mDNS mdns(wifi);
 
 LedBlinker led;
 Mqtt mqtt("mqtt",1024);
@@ -67,6 +67,25 @@ Configurator configurator("config");
 Config config;
 
 extern void waitConfig();
+/*
+// A UDP instance to let us send and receive packets over UDP*/
+WiFiUDP udpClient;
+
+// Create a new syslog instance with LOG_KERN facility
+Syslog *syslog;
+Str udpHost(20);
+uint32_t udpPort;
+
+
+void syslogger(char* start,uint32_t length)
+{
+    if ( syslog==0) {
+        syslog = new Syslog(udpClient,udpHost.c_str() , udpPort, Sys::hostname(), "system", LOG_KERN);
+    }
+    start[length]='\0';
+    syslog->log(start);
+    Log::serialLog(start,length);
+}
 
 enum { NONE,TAG,ANCHOR } DWM1000Role=NONE;
 
@@ -77,30 +96,47 @@ void setup()
     Serial.begin(BAUDRATE, SerialConfig::SERIAL_8E1, SerialMode::SERIAL_FULL); // 8E1 for STM32
     Serial.setDebugOutput(false);
     Sys::delay(1000);
-    INFO("version : " __DATE__ " " __TIME__);
     waitConfig();
 
     String hostname;
-    Str strHostname(30),ssid(30),pswd(60);
+    Str strHostname(30),ssid(30),pswd(60),logLevel(5),logOutput(5);
     Sys::init();
-    INFO("");
-    char hn[20];
 
+    char hn[20];
     sprintf(hn,"ESP%X",ESP.getChipId());
     hostname = hn;
-    INFO(" hostname : %s",hn);
+
+//    system_update_cpu_freq(160);
+
     Sys::hostname(hn);
 
     logger.level(Log::LOG_INFO);
+    INFO("version : " __DATE__ " " __TIME__ " host %s",hn);
 
     config.get("wifi.ssid",ssid,"SSID");
     config.get("wifi.pswd",pswd,"PSWD");
+
+    config.get("log.level",logLevel,"I");
+    logger.setLogLevel(logLevel.peek(0));
+    config.get("log.output",logOutput,"S");
+    /*  cannot log through UDP too much overhead*/
+    if ( logOutput.peek(0)=='U') {
+        config.get("syslog.host",udpHost,"192.168.0.150");
+        config.get("syslog.port",udpPort,514);
+        logger.setOutput(syslogger);
+    };
+    /* Cannot log through MQTT too much overhead or DWM1000 protocol
+     * if ( logOutput.peek(0)=='M') {
+        mqtt.setLog(true);
+    }
+    */
+    INFO("version : " __DATE__ " " __TIME__ " host %s",hn);
 
     hostname=hn;
     strHostname = hn;
 
     wifi.setConfig(ssid,pswd,strHostname);
-    mdns.setConfig(strHostname,2000);
+//    mdns.setConfig(strHostname,2000);
     INFO(" starting Wifi host : '%s' on SSID : '%s' '%s' ", wifi.getHostname(),
          wifi.getSSID(), wifi.getPassword());
 
@@ -117,7 +153,7 @@ void setup()
     led.setWifi(wifi.id());
 //    mqtt.setWifi(wifi.id());
     wifi.setup();
-    mdns.setup();
+//    mdns.setup();
 
 //    memory.setup();
 //    spiTester.setup();
@@ -167,7 +203,12 @@ extern "C"  void loop()
     eb.eventLoop();
     wifi.loop();
     mqtt.loop();
-    mdns.loop();
+//    mdns.loop();
+    if ( DWM1000Role == TAG ) {
+        dwm1000Tag.loop();
+    } else if ( DWM1000Role==ANCHOR) {
+        dwm1000Anchor.loop();
+    }
 
 //    eventBusy.stop();
 //    eventIdle.start();

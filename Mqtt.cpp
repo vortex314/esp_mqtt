@@ -4,7 +4,7 @@
 
 #include <unistd.h>
 #include <fcntl.h>
-static Mqtt* _me;
+Mqtt* Mqtt::_thisMqtt;
 //--------------------------------------------------------------------------------------------------------
 Mqtt::Mqtt(const char* name,uint32_t maxSize) : Actor(name),
     _host(40), _port(1883), _clientId(30), _user(20), _password(20), _willTopic(
@@ -12,7 +12,7 @@ Mqtt::Mqtt(const char* name,uint32_t maxSize) : Actor(name),
             20), _cleanSession(1), _msgid(0),_prefix(20),_topic(TOPIC_LENGTH),_message(maxSize)
 {
     _lastSrc=0;
-    _me=this;
+    _thisMqtt=this;
 }
 //--------------------------------------------------------------------------------------------------------
 Mqtt::~Mqtt()
@@ -138,7 +138,7 @@ void Mqtt::callback(char* topic,byte* message,uint32_t length)
     INFO(" message arrived : [%s]",topic);
     Str tpc(topic);
     Str msg(message,length);
-    eb.event(_me->id(),H("published")).addKeyValue(H("topic"), tpc).addKeyValue(H("message"), msg); // TODO make H("mqtt") dynamic on name
+    eb.event(_thisMqtt->id(),H("published")).addKeyValue(H("topic"), tpc).addKeyValue(H("message"), msg); // TODO make H("mqtt") dynamic on name
     eb.send();
 }
 //--------------------------------------------------------------------------------------------------------
@@ -196,10 +196,38 @@ void Mqtt::publish(Cbor& cbor)
         eb.send();
     }
 }
-//--------------------------------------------------------------------------------------------------------
 
+//======================================================
+void mqttLog(char* start,uint32_t length)
+{
+    if (Mqtt::_thisMqtt
+        && Mqtt::_thisMqtt->_client
+        && Mqtt::_thisMqtt->_client->state() == MQTT_CONNECTED )
+        Mqtt::_thisMqtt->log(start,length);
+    else
+        Log::serialLog(start,length);
+}
 //--------------------------------------------------------------------------------------------------------
-
+void Mqtt::setLog(bool on)
+{
+    if ( on ) {
+        logger.setOutput(mqttLog);
+    } else {
+        logger.defaultOutput();
+    }
+}
+//--------------------------------------------------------------------------------------------------------
+Str logTopic(40);
+void Mqtt::log(char* start,uint32_t length)
+{
+    if ( logTopic.length()==0) {
+        logTopic = "src/";
+        logTopic += Sys::hostname();
+        logTopic += "/log";
+    }
+    _client->publish(logTopic.c_str(),(uint8_t*)start,length,false);
+    _client->loop();
+}
 //--------------------------------------------------------------------------------------------------------
 void Mqtt::subscribe(Cbor& cbor)
 {

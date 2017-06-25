@@ -188,23 +188,26 @@ FrameType DWM1000_Anchor::readMsg(const dwt_callback_data_t* signal)
         FrameType ft = DWM1000::getFrameType(_dwmMsg);
         if (ft == FT_BLINK) {
             memcpy(_blinkMsg.buffer, _dwmMsg.buffer, sizeof(_blinkMsg));
-            INFO(" blink %X : %d",_blinkMsg.getSrc(),_blinkMsg.sequence);
+            INFO(" blink %X : %d : %s",_blinkMsg.getSrc(),_blinkMsg.sequence,uid.label(_state));
             _blinks++;
         } else if (ft == FT_POLL) {
             memcpy(_pollMsg.buffer, _dwmMsg.buffer, sizeof(_pollMsg));
-            INFO(" poll %X : %d",_pollMsg.getSrc(),_pollMsg.sequence);
+            INFO(" poll %X : %d : %s",_pollMsg.getSrc(),_pollMsg.sequence,uid.label(_state));
             _polls++;
         } else if (ft == FT_RESP) {
             memcpy(_respMsg.buffer, _dwmMsg.buffer, sizeof(_respMsg));
-            INFO(" resp %X : %d ",_respMsg.getSrc(),_respMsg.sequence);
+            INFO(" resp %X : %d : %s ",_respMsg.getSrc(),_respMsg.sequence,uid.label(_state));
             _resps++;
         } else if (ft == FT_FINAL) {
             memcpy(_finalMsg.buffer, _dwmMsg.buffer, sizeof(_finalMsg));
-            INFO(" final %X : %d ",_finalMsg.getSrc(),_finalMsg.sequence);
+            INFO(" final %X : %d : %s",_finalMsg.getSrc(),_finalMsg.sequence,uid.label(_state));
             _finals++;
+        } else {
+            INFO(" unknown frame type %X:%X : %s",_dwmMsg.fc[0],_dwmMsg.fc[1],uid.label(_state));
         }
         return ft;
     } else {
+        INFO(" invalid length %d : hdr %X:%X : %s",frameLength,_dwmMsg.fc[0],_dwmMsg.fc[1],uid.label(_state));
         return FT_UNKNOWN;
     }
 }
@@ -371,7 +374,9 @@ ENABLE : {
 
 void DWM1000_Anchor::loop()
 {
-    Str anchorLogStr(100);
+ /*   if ( digitalRead(DWM_PIN_IRQ)) {
+        dwt_isr();
+    }*/
 }
 
 /*! ------------------------------------------------------------------------------------------------------------------
