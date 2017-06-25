@@ -237,9 +237,10 @@ WAIT_RXD: {
                     update(_dwmMsg.getSrc(),_dwmMsg.sequence);
                     createRespMsg(_respMsg,_pollMsg);
                     INFO("resp %X : %d",_respMsg.getDst(),_respMsg.sequence);
-                    if (sendRespMsg()) WARN("FAIL send resp");
-                    goto WAIT_FINAL;
-
+                    if (sendRespMsg()==0) {
+                        goto WAIT_FINAL;
+                    };
+                    WARN("FAIL send resp");
                 } else {
                     WARN(" unexpected frame type %s",uid.label(ft));
                 }
