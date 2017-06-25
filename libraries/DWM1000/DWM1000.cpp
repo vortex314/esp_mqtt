@@ -64,7 +64,8 @@ DWM1000::DWM1000() :
         1, /* Use non-standard SFD (Boolean) */
         _dataRate, /* Data rate. */
         DWT_PHRMODE_EXT, /* PHY header mode. */
-        (129 + 64 - 8) /* SFD timeout (preamble length + 1 + SFD length - PAC size). Used in RX only. */
+        (129 + 64 - 8) /* SFD timeout (preamble length + 1 + SFD length - PAC size). Used in RX only. */ // changed due to above
+        
     };
 
 }

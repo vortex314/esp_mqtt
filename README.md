@@ -1,31 +1,19 @@
 
 https://docs.google.com/document/d/1fxgZ6O5Crq3wHmV1OV_fEfGh67ktuzFFL1c-V1uz-TM/pub
 
-# Limero Local Positioning System
-The lpos system is based on EBos and uses an ESP8266 and DWM1000 to send local positioning information to a central mqtt server.
-It uses two way ranging technique - TWR.
+The target is to create a very modular local positioning system which is easy to deploy and integrate.
+The tag measures the distance towards different anchors by measuring the time of flight for an electro magnetic wave
 
-The device tags send regularly or on request their beacon signal to the anchor. In a poll-response-final message exchange the time of flight is determined and converted to meters. 
-The purpose is that through trilateration the position of device on a plane is measured.
+The modules are using a DWM1000 and an ESP8266.
+The ESP8266 is driving the DWM1000 and sending the results through the use of MQTT to a MQTT broker
+where any host can subscribe. The host needs to do the trilateration calculation , using the
+known positions of the anchors. 
 
-## Schematic
-The schematic is made around a standard connector ( my own ), so I can always cut the board and re-use the parts. As I expected issues with ESP8266, it was a safe bet.
-The connector also makes it possible to connect to other boards. As long as they follow the same interface.
+The tag will auto-discover the anchors as each anchor sends out on a regular base their
+existence.
 
-## Board
-Order here :
-
-
-
-## TODO
-- Make it configurable via serial port & mqtt and store in flash.
-- Make address , baud rate configurable, coordinates  
-- Test in outdoors max distance measurements
-- Publish article
-- Pictures and movie
-- Some math to calculate X/Y pos : (x-x1)^2 + (y-y1)^2 = R^2
-
-
+The cost of this system is low compared with some commercial products :
+    - ESP8266 no
 ## Challenges
 The following investigations tooks weeks to complete and make it work.
 
@@ -70,6 +58,30 @@ if ( contains(extraField) )
 "key":"extraField"
 "value":mqttPayload
 "id
+
+demcu : 7 €
+    - DWM1000 : 25 €
+    - PCB and some components : 5 €
+    - total : +/- 37 €
+
+get started quickly : 
+    - build the system according to instructions
+    - download the binary 
+    - configure through serial port the MQTT settings and the role of the system : T(ag) or A(chor)
+    - enjoy !
+
+
+# Limero Local Positioning System
+The lpos system is based on EBos and uses an ESP8266 and DWM1000 to send local positioning information to a central mqtt server.
+It uses two way ranging technique - TWR.
+
+
+## TODO
+- Make it configurable via serial port & mqtt and store in flash. - DONE
+- Test in outdoors max distance measurements - first test : 20M
+- Publish article 
+- Pictures and movie
+- Some math to calculate X/Y pos : (x-x1)^2 + (y-y1)^2 = R^2
 
 
 
