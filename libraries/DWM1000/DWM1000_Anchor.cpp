@@ -241,7 +241,7 @@ WAIT_RXD: {
                     goto WAIT_FINAL;
 
                 } else {
-                    WARN("unknown message");
+                    WARN(" unexpected frame type %s",uid.label(ft));
                 }
             } else if (signal->event == DWT_SIG_RX_TIMEOUT) {
                 if (_blinkTimer.expired()) {
@@ -266,7 +266,7 @@ WAIT_FINAL: {
             if (ft == FT_FINAL) {
                 calcFinalMsg();
             } else {
-                WARN("");
+                WARN(" unexpected frame type %s",uid.label(ft));
             }
         }
         dwt_write32bitreg(SYS_STATUS_ID,SYS_STATUS_ALL_RX_GOOD | SYS_STATUS_ALL_RX_ERR);
