@@ -51,9 +51,9 @@ DWM1000::DWM1000() :
     _sequence = 0;
     _channel = 2;
     _prf = DWT_PRF_16M;
-    _preambleLength = DWT_PLEN_1024;
+    _preambleLength = DWT_PLEN_128; // was 1024
     _dataRate = DWT_BR_850K;
-    _pacSize = DWT_PAC32;
+    _pacSize = DWT_PAC8; // was 32
     _config = {  //
         _channel,// Channel number.
         _prf,// Pulse repetition frequency.
@@ -64,7 +64,7 @@ DWM1000::DWM1000() :
         1, /* Use non-standard SFD (Boolean) */
         _dataRate, /* Data rate. */
         DWT_PHRMODE_EXT, /* PHY header mode. */
-        (1025 + 64 - 32) /* SFD timeout (preamble length + 1 + SFD length - PAC size). Used in RX only. */
+        (129 + 64 - 8) /* SFD timeout (preamble length + 1 + SFD length - PAC size). Used in RX only. */
     };
 
 }
