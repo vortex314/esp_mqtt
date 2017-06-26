@@ -215,7 +215,7 @@ FrameType DWM1000_Anchor::readMsg(const dwt_callback_data_t* signal)
 //===================================================================================
 void DWM1000_Anchor::update(uint16_t src,uint8_t sequence) {
     if ( sequence > (_lastSequence+1)) {
-        WARN("dropped frames : %d",sequence-_lastSequence);
+        WARN("dropped frames : %d",sequence-_lastSequence-1);
     }
     _lastSequence=sequence;
 }

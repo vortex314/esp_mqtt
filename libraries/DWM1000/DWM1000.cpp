@@ -23,7 +23,7 @@
 #define RX_ANT_DLY 16436
 
 /* Default communication configuration. We use here EVK1000's default mode (mode 3). */
-static dwt_config_t dwt_config = {  //
+static dwt_config_t dwt2_config = {  //
     2, // Channel number.
     DWT_PRF_64M, // Pulse repetition frequency.
     DWT_PLEN_1024, /* Preamble length. */
@@ -50,11 +50,11 @@ DWM1000::DWM1000() :
 {
     _sequence = 0;
     _channel = 2;
-    _prf = DWT_PRF_16M;
-    _preambleLength = DWT_PLEN_128; // was 1024
+    _prf = DWT_PRF_64M;
+    _preambleLength = DWT_PLEN_1024; // was 1024
     _dataRate = DWT_BR_850K;
-    _pacSize = DWT_PAC8; // was 32
-    _config = {  //
+    _pacSize = DWT_PAC32; // was 32
+    _config = {  //129 + 64 - 8
         _channel,// Channel number.
         _prf,// Pulse repetition frequency.
         _preambleLength, /* Preamble length. */
@@ -64,7 +64,7 @@ DWM1000::DWM1000() :
         1, /* Use non-standard SFD (Boolean) */
         _dataRate, /* Data rate. */
         DWT_PHRMODE_EXT, /* PHY header mode. */
-        (129 + 64 - 8) /* SFD timeout (preamble length + 1 + SFD length - PAC size). Used in RX only. */ // changed due to above
+        (1025+64-32) /* SFD timeout (preamble length + 1 + SFD length - PAC size). Used in RX only. */ // changed due to above
         
     };
 
@@ -155,7 +155,7 @@ void DWM1000::setup()
     dwt_setsmarttxpower(true);
     dwt_setrxmode(DWT_RX_NORMAL, 0, 0);
 
-    if (dwt_configure(&dwt_config)) {
+    if (dwt_configure(&_config)) {
         INFO(" dwt_configure failed ");
     } else
         INFO(" dwt_configure done.");
