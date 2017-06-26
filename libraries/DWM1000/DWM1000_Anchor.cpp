@@ -357,8 +357,8 @@ ENABLE : {
             oldInterrupts = _interrupts;
 
             INFO(
-                " interrupts : %d blinks : %d polls : %d resps : %d finals :%d",
-                _interrupts, _blinks, _polls, _resps, _finals);
+                " interrupts : %d blinks : %d polls : %d resps : %d finals :%d heap : %d",
+                _interrupts, _blinks, _polls, _resps, _finals,ESP.getFreeHeap());
 
             if (_finals != oldFinals) {
                 oldFinals = _finals;
