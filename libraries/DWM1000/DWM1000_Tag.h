@@ -21,12 +21,25 @@ public:
     uint16_t _address;
     uint64_t _expires;
     uint8_t _sequence;
+    int32_t _x;
+    int32_t _y;
+    uint32_t _distance;
     bool expired() {
         return Sys::millis()>_expires;
     }
     void update(uint8_t sequence) {
         _expires = Sys::millis()+ANCHOR_EXPIRE_TIME;
         if ( sequence > (_sequence+1)) INFO(" dropped %d frames from 0x%X",sequence-_sequence-1,_address);
+        _sequence=sequence;
+    }
+    
+    void update(BlinkMsg& blinkMsg) {
+        uint8_t sequence = blinkMsg.sequence;
+        _expires = Sys::millis()+ANCHOR_EXPIRE_TIME;
+        if ( sequence > (_sequence+1)) INFO(" dropped %d frames from 0x%X",sequence-_sequence-1,_address);
+        le(_x,blinkMsg.x);
+        le(_y,blinkMsg.y);
+        le(_distance,blinkMsg.distance);
         _sequence=sequence;
     }
     RemoteAnchor(uint16_t address,uint8_t sequence) {
@@ -91,6 +104,7 @@ public:
     void onDWEvent(const dwt_callback_data_t* signal);
     FrameType readMsg(const dwt_callback_data_t* signal);
     void updateAnchors(uint16_t address,uint8_t sequence);
+    void updateAnchors(BlinkMsg& blinkMsg);
     void expireAnchors();
     bool pollAnchors();
     void handleBlinkMsg();

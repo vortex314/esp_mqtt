@@ -117,7 +117,7 @@ int DWM1000_Tag::sendFinalMsg()
 
 void DWM1000_Tag::handleBlinkMsg()
 {
-    updateAnchors(_blinkMsg.getSrc(),_blinkMsg.sequence);
+    updateAnchors(_blinkMsg);
 }
 
 Str strLog(100);
@@ -127,6 +127,25 @@ void logTag(const char* s, uint32_t state, uint8_t* buffer, uint32_t length)
     strLog.clear();
     strLog.appendHex(buffer, length, ':');
     INFO("%s %s %s", s, uid.label(state), strLog.c_str());
+}
+
+void DWM1000_Tag::updateAnchors(BlinkMsg& blinkMsg)
+{
+    uint16_t address = blinkMsg.getSrc();
+
+    if (anchors.count(address) == 0) {
+        RemoteAnchor anchor(address,blinkMsg.sequence);
+        le(anchor._x,blinkMsg.x);
+        le(anchor._y,blinkMsg.y);
+        le(anchor._distance,blinkMsg.distance);
+        anchors.emplace(address, anchor);
+        INFO(" new anchor : %X x:%d y:%d dist: %d", address,anchor._x,anchor._y,anchor._distance);
+    } else {
+        RemoteAnchor& anchor = anchors.find(address)->second;
+        anchor.update(blinkMsg);
+        INFO(" upd anchor : %X x:%d y:%d dist: %d", address,anchor._x,anchor._y,anchor._distance);
+    }
+
 }
 
 void DWM1000_Tag::updateAnchors(uint16_t address, uint8_t sequence)
@@ -351,7 +370,7 @@ ENABLE : {
             }
             expireAnchors();
             oldInterrupts = _interrupts;
-      INFO(
+            INFO(
                 " interrupts : %d blinks : %d polls : %d resps : %d finals :%d heap : %d",
                 _interrupts, _blinks, _polls, _resps, _finals,ESP.getFreeHeap());
         }

@@ -27,11 +27,13 @@ public:
     const char* summary();
 
     bool hasKey(const char* key);
+	void get(const char*, int32_t &, int32_t defaultValue);
 	void get(const char*, uint32_t &, uint32_t defaultValue);
 	void get(const char*, Str&, const char* defaultValue);
     void remove(const char* key);
 
 	void set(const char*, uint32_t );
+	void set(const char*, int32_t );
 	void set(const char*, Str&);
     void set(const char* key, const char* value);
 };

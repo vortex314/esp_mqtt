@@ -65,7 +65,7 @@ DWM1000::DWM1000() :
         _dataRate, /* Data rate. */
         DWT_PHRMODE_EXT, /* PHY header mode. */
         (1025+64-32) /* SFD timeout (preamble length + 1 + SFD length - PAC size). Used in RX only. */ // changed due to above
-        
+
     };
 
 }
@@ -171,6 +171,8 @@ void DWM1000::setup()
 
     dwt_setrxantennadelay(RX_ANT_DLY); /* Apply default antenna delay value. See NOTE 1 below. */
     dwt_settxantennadelay(TX_ANT_DLY);
+    config.get("lpos.x",_x,1000);
+    config.get("lpos.y",_y,2000);
 }
 
 FrameType DWM1000::getFrameType(DwmMsg& msg)
@@ -190,6 +192,8 @@ FrameType DWM1000::getFrameType(DwmMsg& msg)
 
 //=======================================================================
 
+
+
 void DWM1000::createBlinkFrame(BlinkMsg& blink)
 {
     blink.fc[0] = FC_1_BLINK;
@@ -198,6 +202,9 @@ void DWM1000::createBlinkFrame(BlinkMsg& blink)
     blink.sequence = _sequence++;
     for (int i = 0; i < 8; i++)
         blink.sourceLong[i] = _longAddress[7 - i];
+    le(blink.x,_x);
+    le(blink.y,_y);
+    le(blink.distance,_distance);
 }
 
 

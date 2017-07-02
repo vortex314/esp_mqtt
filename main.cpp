@@ -35,7 +35,7 @@ extern "C" {
 
 };
 
-uint32_t BAUDRATE = 921600;
+uint32_t BAUDRATE = 230400;
 
 Uid uid(200);
 EventBus eb(4096,1024);
@@ -187,6 +187,21 @@ void setup()
     led.setup();
     systm.setup();
 
+    int32_t x=-1000;
+    uint8_t data[4];
+    le(data,x);
+    int32_t x2;
+    le(x2,data);
+    Str hex(20);
+    hex.appendHex(data,4,':');
+    
+    
+    Json json(100);
+    json.addMap();
+    json.addKey("x");
+    json.add(x);
+    json.addBreak();
+    INFO(" x :  %d x2 : %d  data : %s json : %s ",x,x2,hex.c_str(),json.c_str());
 
 //	eb.onEvent(H("system"),H("state")).subscribe(&router,(MethodHandler)&Router::ebToMqtt); // publisize timer-state events
 

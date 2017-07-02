@@ -243,6 +243,30 @@ void Config::set(const char* key, uint32_t value)
     json.parse();
 }
 
+
+void Config::set(const char* key, int32_t value)
+{
+    load();
+    Json output(EEPROM_SIZE);
+    int32_t valueConfig;
+
+//    DEBUG(" set %s:%d ",key,value);
+//    DEBUG(" json before set : %s",json.c_str());
+    json.rewind();
+    if ( json.findKey(key) &&  json.get(valueConfig) && valueConfig ==  value) {
+        return;
+    }
+    if ( copyExcept(output,json,key)) {
+        output.addKey(key);
+        output.add(value);
+        output.addBreak();
+        json=output;
+    }
+    INFO(" Config => SET  %s = %d",key,value);
+    save();
+    json.parse();
+}
+
 void Config::get(const char* key, Str& value,
                  const char* defaultValue)
 {
@@ -260,6 +284,21 @@ void Config::get(const char* key, Str& value,
     INFO(" Config => GET %s = %s ",key,value.c_str());
 }
 
+
+void Config::get(const char* key, int32_t& value,
+                 int32_t defaultValue)
+{
+//    load();
+//	DEBUG(" input :%s",input.c_str());
+    json.rewind();
+    if (json.findKey(key)) {
+        json.get(value);
+    } else {
+        value = defaultValue;
+        set(key,value);
+    }
+    INFO(" Config => GET %s = %d ",key,value);
+}
 
 void Config::get(const char* key, uint32_t& value,
                  uint32_t defaultValue)

@@ -1,0 +1,477 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeLite_Project Name="limero-lpos" InternalType="">
+  <Plugins>
+    <Plugin Name="qmake">
+      <![CDATA[00010001N0005Debug000000000000]]>
+    </Plugin>
+  </Plugins>
+  <VirtualDirectory Name="libraries">
+    <VirtualDirectory Name="Common">
+      <VirtualDirectory Name="src"/>
+      <File Name="libraries/Common/Sys.h"/>
+      <File Name="libraries/Common/CborQueue.h"/>
+      <File Name="libraries/Common/LinkedList.cpp"/>
+      <File Name="libraries/Common/Msg.h"/>
+      <File Name="libraries/Common/Signal.h"/>
+      <File Name="libraries/Common/Bytes.cpp"/>
+      <File Name="libraries/Common/BufferedByteStream.cpp"/>
+      <File Name="libraries/Common/Uart.h"/>
+      <File Name="libraries/Common/Packer.h"/>
+      <File Name="libraries/Common/Node.cpp"/>
+      <File Name="libraries/Common/Msg.cpp"/>
+      <File Name="libraries/Common/Node.h"/>
+      <File Name="libraries/Common/Cbor.h"/>
+      <File Name="libraries/Common/PIC32_stubs.cpp"/>
+      <File Name="libraries/Common/Log.cpp"/>
+      <File Name="libraries/Common/STM32_stubs.cpp"/>
+      <File Name="libraries/Common/CborQueue.cpp"/>
+      <File Name="libraries/Common/Str.cpp"/>
+      <File Name="libraries/Common/Link.h"/>
+      <File Name="libraries/Common/Msgpack.cpp"/>
+      <File Name="libraries/Common/Interface.h"/>
+      <File Name="libraries/Common/jsmn.c"/>
+      <File Name="libraries/Common/lc.h"/>
+      <File Name="libraries/Common/BufferedByteStream.h"/>
+      <File Name="libraries/Common/jsmn.h"/>
+      <File Name="libraries/Common/printf.h"/>
+      <File Name="libraries/Common/Flags.h"/>
+      <File Name="libraries/Common/Str.h"/>
+      <File Name="libraries/Common/Board.h"/>
+      <File Name="libraries/Common/EventSource.cpp"/>
+      <File Name="libraries/Common/Thread.h"/>
+      <File Name="libraries/Common/Json.h"/>
+      <File Name="libraries/Common/Log.h"/>
+      <File Name="libraries/Common/Property.h"/>
+      <File Name="libraries/Common/pt-sem.h"/>
+      <File Name="libraries/Common/lc-switch.h"/>
+      <File Name="libraries/Common/Handler.h"/>
+      <File Name="libraries/Common/Prop.h"/>
+      <File Name="libraries/Common/Msgpack.h"/>
+      <File Name="libraries/Common/Json.cpp"/>
+      <File Name="libraries/Common/Bytes.h"/>
+      <File Name="libraries/Common/Strpack.cpp"/>
+      <File Name="libraries/Common/Strpack.h"/>
+      <File Name="libraries/Common/Base64.h"/>
+      <File Name="libraries/Common/Bits.h"/>
+      <File Name="libraries/Common/ByteStream.h"/>
+      <File Name="libraries/Common/pt.h"/>
+      <File Name="libraries/Common/CircBuf.h"/>
+      <File Name="libraries/Common/Timer.h"/>
+      <File Name="libraries/Common/QueueTemplate.h"/>
+      <File Name="libraries/Common/Mutex.h"/>
+      <File Name="libraries/Common/ProtoThread.h"/>
+      <File Name="libraries/Common/Pool.h"/>
+      <File Name="libraries/Common/BipBuffer.h"/>
+      <File Name="libraries/Common/Erc.h"/>
+      <File Name="libraries/Common/CircBuf.cpp"/>
+      <File Name="libraries/Common/Logger.h"/>
+      <File Name="libraries/Common/EventSource.h"/>
+      <File Name="libraries/Common/BipBuffer.cpp"/>
+      <File Name="libraries/Common/platform.h"/>
+      <File Name="libraries/Common/lc-addrlabels.h"/>
+      <File Name="libraries/Common/LinkedList.h"/>
+      <File Name="libraries/Common/printf.c"/>
+      <File Name="libraries/Common/Base64.cpp"/>
+      <File Name="libraries/Common/Cbor.cpp"/>
+    </VirtualDirectory>
+    <VirtualDirectory Name="Ebos">
+      <File Name="libraries/Ebos/EventBus.h"/>
+      <File Name="libraries/Ebos/System.h"/>
+      <File Name="libraries/Ebos/Uid.cpp"/>
+      <File Name="libraries/Ebos/Uid.h"/>
+      <File Name="libraries/Ebos/System.cpp"/>
+      <File Name="libraries/Ebos/SlipStream.cpp"/>
+      <File Name="libraries/Ebos/Slip.h"/>
+      <File Name="libraries/Ebos/Actor.h"/>
+      <File Name="libraries/Ebos/Slip.cpp"/>
+      <File Name="libraries/Ebos/ebos_labels.h"/>
+      <File Name="libraries/Ebos/Actor.cpp"/>
+      <File Name="libraries/Ebos/EventBus.cpp"/>
+      <File Name="libraries/Ebos/SlipStream.h"/>
+    </VirtualDirectory>
+    <VirtualDirectory Name="main"/>
+    <VirtualDirectory Name="DWM1000"/>
+  </VirtualDirectory>
+  <VirtualDirectory Name="src">
+    <File Name="Config.cpp"/>
+    <File Name="Config.h"/>
+    <File Name="Configurator.cpp"/>
+    <File Name="Configurator.h"/>
+    <File Name="Flash.cpp"/>
+    <File Name="Flash.h"/>
+    <File Name="LedBlinker.cpp"/>
+    <File Name="LedBlinker.h"/>
+    <File Name="Mqtt.cpp"/>
+    <File Name="Mqtt.h"/>
+    <File Name="PubSubClient.cpp"/>
+    <File Name="PubSubClient.h"/>
+    <File Name="Sys.cpp"/>
+    <File Name="Wifi.cpp"/>
+    <File Name="Wifi.h"/>
+    <File Name="ebos_labels.h"/>
+    <File Name="esp8266.h"/>
+    <File Name="esp8266_peri.h"/>
+    <File Name="espmissingincludes.h"/>
+    <File Name="gpio_c.h"/>
+    <File Name="mDNS.cpp"/>
+    <File Name="mDNS.h"/>
+    <File Name="main.cpp"/>
+    <File Name="main_labels.h"/>
+    <File Name="Memory.h"/>
+    <File Name="Memory.cpp"/>
+    <File Name="SpiTester.h"/>
+    <File Name="SpiTester.cpp"/>
+    <File Name="IrqTester.h"/>
+    <File Name="IrqTester.cpp"/>
+    <File Name="Metric.h"/>
+    <File Name="SerialConfig.cpp"/>
+    <File Name="SysLog.cpp"/>
+    <File Name="SysLog.h"/>
+    <File Name="_labels.h"/>
+    <File Name="libraries/Common/endian.h"/>
+  </VirtualDirectory>
+  <Reconciliation>
+    <Regexes/>
+    <Excludepaths/>
+    <Ignorefiles/>
+    <Extensions>
+      <![CDATA[cpp;c;h;hpp;xrc;wxcp;fbp]]>
+    </Extensions>
+    <Topleveldir>../limero-lpos</Topleveldir>
+  </Reconciliation>
+  <VirtualDirectory Name="ArduinoJson">
+    <VirtualDirectory Name="TypeTraits">
+      <File Name="ArduinoJson/TypeTraits/IsFloatingPoint.hpp"/>
+      <File Name="ArduinoJson/TypeTraits/IsReference.hpp"/>
+      <File Name="ArduinoJson/TypeTraits/EnableIf.hpp"/>
+      <File Name="ArduinoJson/TypeTraits/IsUnsignedIntegral.hpp"/>
+      <File Name="ArduinoJson/TypeTraits/IsSame.hpp"/>
+      <File Name="ArduinoJson/TypeTraits/IsIntegral.hpp"/>
+      <File Name="ArduinoJson/TypeTraits/RemoveReference.hpp"/>
+      <File Name="ArduinoJson/TypeTraits/IsSignedIntegral.hpp"/>
+      <File Name="ArduinoJson/TypeTraits/RemoveConst.hpp"/>
+    </VirtualDirectory>
+    <VirtualDirectory Name="Internals">
+      <File Name="ArduinoJson/Internals/StaticStringBuilder.hpp"/>
+      <File Name="ArduinoJson/Internals/ListConstIterator.hpp"/>
+      <File Name="ArduinoJson/Internals/StreamPrintAdapter.hpp"/>
+      <File Name="ArduinoJson/Internals/JsonVariantType.hpp"/>
+      <File Name="ArduinoJson/Internals/JsonVariantContent.hpp"/>
+      <File Name="ArduinoJson/Internals/JsonInteger.hpp"/>
+      <File Name="ArduinoJson/Internals/JsonFloat.hpp"/>
+      <File Name="ArduinoJson/Internals/ListNode.hpp"/>
+      <File Name="ArduinoJson/Internals/DynamicStringBuilder.hpp"/>
+      <File Name="ArduinoJson/Internals/Encoding.hpp"/>
+      <File Name="ArduinoJson/Internals/ReferenceType.hpp"/>
+      <File Name="ArduinoJson/Internals/Comments.hpp"/>
+      <File Name="ArduinoJson/Internals/JsonWriter.hpp"/>
+      <File Name="ArduinoJson/Internals/BlockJsonBuffer.hpp"/>
+      <File Name="ArduinoJson/Internals/Parse.hpp"/>
+      <File Name="ArduinoJson/Internals/JsonBufferAllocated.hpp"/>
+      <File Name="ArduinoJson/Internals/JsonPrintable.hpp"/>
+      <File Name="ArduinoJson/Internals/List.hpp"/>
+      <File Name="ArduinoJson/Internals/ListIterator.hpp"/>
+      <File Name="ArduinoJson/Internals/Prettyfier.hpp"/>
+      <File Name="ArduinoJson/Internals/DummyPrint.hpp"/>
+      <File Name="ArduinoJson/Internals/JsonParser.hpp"/>
+      <File Name="ArduinoJson/Internals/IndentedPrint.hpp"/>
+    </VirtualDirectory>
+    <VirtualDirectory Name="Polyfills">
+      <File Name="ArduinoJson/Polyfills/normalize.hpp"/>
+      <File Name="ArduinoJson/Polyfills/math.hpp"/>
+      <File Name="ArduinoJson/Polyfills/attributes.hpp"/>
+    </VirtualDirectory>
+    <File Name="ArduinoJson/JsonBuffer.hpp"/>
+    <File Name="ArduinoJson/Configuration.hpp"/>
+    <File Name="ArduinoJson/Print.hpp"/>
+    <File Name="ArduinoJson/JsonObjectKey.hpp"/>
+    <File Name="ArduinoJson/JsonArray.hpp"/>
+    <File Name="ArduinoJson/JsonVariant.hpp"/>
+    <File Name="ArduinoJson/String.hpp"/>
+    <File Name="ArduinoJson/RawJson.hpp"/>
+    <File Name="ArduinoJson/DynamicJsonBuffer.hpp"/>
+    <File Name="ArduinoJson/JsonObjectSubscript.hpp"/>
+    <File Name="ArduinoJson/JsonObject.hpp"/>
+    <File Name="ArduinoJson/JsonVariantBase.hpp"/>
+    <File Name="ArduinoJson/JsonPair.hpp"/>
+    <File Name="ArduinoJson/JsonArraySubscript.hpp"/>
+    <File Name="ArduinoJson/StaticJsonBuffer.hpp"/>
+  </VirtualDirectory>
+  <Description/>
+  <Dependencies/>
+  <VirtualDirectory Name="limero-lpos">
+    <File Name="Makefile"/>
+    <File Name="mkf"/>
+  </VirtualDirectory>
+  <VirtualDirectory Name="pubsubclient"/>
+  <VirtualDirectory Name="core">
+    <File Name="../Arduino/cores/esp8266/abi.cpp"/>
+    <File Name="../Arduino/cores/esp8266/Arduino.h"/>
+    <File Name="../Arduino/cores/esp8266/base64.cpp"/>
+    <File Name="../Arduino/cores/esp8266/base64.h"/>
+    <File Name="../Arduino/cores/esp8266/binary.h"/>
+    <File Name="../Arduino/cores/esp8266/cbuf.cpp"/>
+    <File Name="../Arduino/cores/esp8266/cbuf.h"/>
+    <File Name="../Arduino/cores/esp8266/Client.h"/>
+    <File Name="../Arduino/cores/esp8266/cont.h"/>
+    <File Name="../Arduino/cores/esp8266/cont.S"/>
+    <File Name="../Arduino/cores/esp8266/cont_util.c"/>
+    <File Name="../Arduino/cores/esp8266/core_esp8266_eboot_command.c"/>
+    <File Name="../Arduino/cores/esp8266/core_esp8266_features.h"/>
+    <File Name="../Arduino/cores/esp8266/core_esp8266_flash_utils.c"/>
+    <File Name="../Arduino/cores/esp8266/core_esp8266_i2s.c"/>
+    <File Name="../Arduino/cores/esp8266/core_esp8266_main.cpp"/>
+    <File Name="../Arduino/cores/esp8266/core_esp8266_noniso.c"/>
+    <File Name="../Arduino/cores/esp8266/core_esp8266_phy.c"/>
+    <File Name="../Arduino/cores/esp8266/core_esp8266_postmortem.c"/>
+    <File Name="../Arduino/cores/esp8266/core_esp8266_si2c.c"/>
+    <File Name="../Arduino/cores/esp8266/core_esp8266_sigma_delta.c.unused"/>
+    <File Name="../Arduino/cores/esp8266/core_esp8266_timer.c"/>
+    <File Name="../Arduino/cores/esp8266/core_esp8266_wiring.c"/>
+    <File Name="../Arduino/cores/esp8266/core_esp8266_wiring_analog.c"/>
+    <File Name="../Arduino/cores/esp8266/core_esp8266_wiring_digital.c"/>
+    <File Name="../Arduino/cores/esp8266/core_esp8266_wiring_pulse.c"/>
+    <File Name="../Arduino/cores/esp8266/core_esp8266_wiring_pwm.c"/>
+    <File Name="../Arduino/cores/esp8266/core_esp8266_wiring_shift.c"/>
+    <File Name="../Arduino/cores/esp8266/core_version.h"/>
+    <File Name="../Arduino/cores/esp8266/debug.cpp"/>
+    <File Name="../Arduino/cores/esp8266/debug.h"/>
+    <File Name="../Arduino/cores/esp8266/eboot_command.h"/>
+    <File Name="../Arduino/cores/esp8266/esp8266_peri.h"/>
+    <File Name="../Arduino/cores/esp8266/Esp.cpp"/>
+    <File Name="../Arduino/cores/esp8266/Esp.h"/>
+    <File Name="../Arduino/cores/esp8266/flash_utils.h"/>
+    <File Name="../Arduino/cores/esp8266/FS.cpp"/>
+    <File Name="../Arduino/cores/esp8266/FS.h"/>
+    <File Name="../Arduino/cores/esp8266/FSImpl.h"/>
+    <File Name="../Arduino/cores/esp8266/HardwareSerial.cpp"/>
+    <File Name="../Arduino/cores/esp8266/HardwareSerial.h"/>
+    <File Name="../Arduino/cores/esp8266/heap.c"/>
+    <File Name="../Arduino/cores/esp8266/i2s.h"/>
+    <File Name="../Arduino/cores/esp8266/interrupts.h"/>
+    <File Name="../Arduino/cores/esp8266/IPAddress.cpp"/>
+    <File Name="../Arduino/cores/esp8266/IPAddress.h"/>
+    <File Name="../Arduino/cores/esp8266/libc_replacements.c"/>
+    <File Name="../Arduino/cores/esp8266/md5.h"/>
+    <File Name="../Arduino/cores/esp8266/MD5Builder.cpp"/>
+    <File Name="../Arduino/cores/esp8266/MD5Builder.h"/>
+    <File Name="../Arduino/cores/esp8266/pgmspace.cpp"/>
+    <File Name="../Arduino/cores/esp8266/pgmspace.h"/>
+    <File Name="../Arduino/cores/esp8266/Print.cpp"/>
+    <File Name="../Arduino/cores/esp8266/Print.h"/>
+    <File Name="../Arduino/cores/esp8266/Printable.h"/>
+    <File Name="../Arduino/cores/esp8266/Schedule.cpp"/>
+    <File Name="../Arduino/cores/esp8266/Schedule.h"/>
+    <File Name="../Arduino/cores/esp8266/Server.h"/>
+    <File Name="../Arduino/cores/esp8266/sigma_delta.h"/>
+    <File Name="../Arduino/cores/esp8266/spiffs_api.cpp"/>
+    <File Name="../Arduino/cores/esp8266/spiffs_api.h"/>
+    <File Name="../Arduino/cores/esp8266/spiffs_hal.cpp"/>
+    <File Name="../Arduino/cores/esp8266/stdlib_noniso.h"/>
+    <File Name="../Arduino/cores/esp8266/Stream.cpp"/>
+    <File Name="../Arduino/cores/esp8266/Stream.h"/>
+    <File Name="../Arduino/cores/esp8266/StreamString.cpp"/>
+    <File Name="../Arduino/cores/esp8266/StreamString.h"/>
+    <File Name="../Arduino/cores/esp8266/time.c"/>
+    <File Name="../Arduino/cores/esp8266/Tone.cpp"/>
+    <File Name="../Arduino/cores/esp8266/twi.h"/>
+    <File Name="../Arduino/cores/esp8266/uart.c"/>
+    <File Name="../Arduino/cores/esp8266/uart.h"/>
+    <File Name="../Arduino/cores/esp8266/Udp.h"/>
+    <File Name="../Arduino/cores/esp8266/Updater.cpp"/>
+    <File Name="../Arduino/cores/esp8266/Updater.h"/>
+    <File Name="../Arduino/cores/esp8266/user_config.h"/>
+    <File Name="../Arduino/cores/esp8266/WCharacter.h"/>
+    <File Name="../Arduino/cores/esp8266/wiring_private.h"/>
+    <File Name="../Arduino/cores/esp8266/WMath.cpp"/>
+    <File Name="../Arduino/cores/esp8266/WString.cpp"/>
+    <File Name="../Arduino/cores/esp8266/WString.h"/>
+  </VirtualDirectory>
+  <VirtualDirectory Name="Ebos">
+    <File Name="libraries/Ebos/MqttCbor.cpp"/>
+    <File Name="libraries/Ebos/MqttCbor.h"/>
+    <File Name="libraries/Ebos/MqttJson.cpp"/>
+    <File Name="libraries/Ebos/MqttJson.h"/>
+  </VirtualDirectory>
+  <Settings Type="Executable">
+    <GlobalSettings>
+      <Compiler Options="" C_Options="" Assembler="">
+        <IncludePath Value="."/>
+      </Compiler>
+      <Linker Options="">
+        <LibraryPath Value="."/>
+      </Linker>
+      <ResourceCompiler Options=""/>
+    </GlobalSettings>
+    <Configuration Name="Debug" CompilerType="Cross GCC ( xtensa-lx106-elf )" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+      <Compiler Options="-c -Os -Wpointer-arith -Wno-implicit-function-declaration -Wl,-EL -fno-inline-functions -nostdlib -mlongcalls -mtext-section-literals -falign-functions=4 -MMD -std=gnu99 -ffunction-sections -fdata-sections" C_Options="-std=c++11;-c -Os -mlongcalls -mtext-section-literals -fno-exceptions -fno-rtti -falign-functions=4 -std=c++11 -MMD -ffunction-sections -fdata-sections" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+        <IncludePath Value="."/>
+        <IncludePath Value="../Arduino/tools/sdk/include"/>
+        <IncludePath Value="../Arduino/cores/esp8266"/>
+        <IncludePath Value="../Arduino/libraries/EEPROM"/>
+        <IncludePath Value="../Arduino/libraries/ESP8266WiFi/src"/>
+        <IncludePath Value="../Arduino/libraries/ESP8266mDNS"/>
+        <IncludePath Value="../Arduino/variants/nodemcu"/>
+        <IncludePath Value="Common/inc"/>
+        <IncludePath Value="Ebos"/>
+        <IncludePath Value="src"/>
+      </Compiler>
+      <Linker Options="" Required="yes">
+        <LibraryPath Value="../Common/Debug"/>
+        <Library Value="Common"/>
+      </Linker>
+      <ResourceCompiler Options="" Required="no"/>
+      <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Debug" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <BuildSystem Name="Default"/>
+      <Environment EnvVarSetName="Default" DbgSetName="&lt;Use Defaults&gt;">
+        <![CDATA[]]>
+      </Environment>
+      <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="" IsExtended="no">
+        <DebuggerSearchPaths/>
+        <PostConnectCommands/>
+        <StartupCommands/>
+      </Debugger>
+      <PreBuild>
+        <Command Enabled="yes">./libraries/Ebos/keys.sh ebos</Command>
+        <Command Enabled="yes">./keys.sh main</Command>
+      </PreBuild>
+      <PostBuild/>
+      <CustomBuild Enabled="yes">
+        <RebuildCommand/>
+        <CleanCommand>make clean</CleanCommand>
+        <BuildCommand>make</BuildCommand>
+        <PreprocessFileCommand/>
+        <SingleFileCommand/>
+        <MakefileGenerationCommand/>
+        <ThirdPartyToolName>None</ThirdPartyToolName>
+        <WorkingDirectory>/home/lieven/workspace/limero-lpos</WorkingDirectory>
+      </CustomBuild>
+      <AdditionalRules>
+        <CustomPostBuild/>
+        <CustomPreBuild/>
+      </AdditionalRules>
+      <Completion EnableCpp11="no" EnableCpp14="no">
+        <ClangCmpFlagsC/>
+        <ClangCmpFlags/>
+        <ClangPP/>
+        <SearchPaths/>
+      </Completion>
+    </Configuration>
+    <Configuration Name="Release" CompilerType="Cross GCC ( xtensa-lx106-elf )" DebuggerType="GNU gdb debugger" Type="Dynamic Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+      <Compiler Options="" C_Options="" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+        <IncludePath Value="."/>
+      </Compiler>
+      <Linker Options="-O2" Required="yes"/>
+      <ResourceCompiler Options="" Required="no"/>
+      <General OutputFile="" IntermediateDirectory="./Release" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <BuildSystem Name="Default"/>
+      <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
+        <![CDATA[]]>
+      </Environment>
+      <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="" IsExtended="no">
+        <DebuggerSearchPaths/>
+        <PostConnectCommands/>
+        <StartupCommands/>
+      </Debugger>
+      <PreBuild/>
+      <PostBuild/>
+      <CustomBuild Enabled="yes">
+        <RebuildCommand/>
+        <CleanCommand>make clean</CleanCommand>
+        <BuildCommand>make</BuildCommand>
+        <PreprocessFileCommand/>
+        <SingleFileCommand/>
+        <MakefileGenerationCommand/>
+        <ThirdPartyToolName>None</ThirdPartyToolName>
+        <WorkingDirectory>$(WorkspacePath)</WorkingDirectory>
+      </CustomBuild>
+      <AdditionalRules>
+        <CustomPostBuild/>
+        <CustomPreBuild/>
+      </AdditionalRules>
+      <Completion EnableCpp11="no" EnableCpp14="no">
+        <ClangCmpFlagsC/>
+        <ClangCmpFlags/>
+        <ClangPP/>
+        <SearchPaths/>
+      </Completion>
+    </Configuration>
+    <Configuration Name="upload" CompilerType="Cross GCC ( xtensa-lx106-elf )" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+      <Compiler Options="-g" C_Options="-g" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+        <IncludePath Value="."/>
+      </Compiler>
+      <Linker Options="" Required="yes">
+        <LibraryPath Value="../Common/Debug"/>
+        <Library Value="Common"/>
+      </Linker>
+      <ResourceCompiler Options="" Required="no"/>
+      <General OutputFile="" IntermediateDirectory="./Debug" Command="" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <BuildSystem Name="Default"/>
+      <Environment EnvVarSetName="Default" DbgSetName="&lt;Use Defaults&gt;">
+        <![CDATA[]]>
+      </Environment>
+      <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="" IsExtended="no">
+        <DebuggerSearchPaths/>
+        <PostConnectCommands/>
+        <StartupCommands/>
+      </Debugger>
+      <PreBuild/>
+      <PostBuild/>
+      <CustomBuild Enabled="yes">
+        <RebuildCommand/>
+        <CleanCommand>make clean</CleanCommand>
+        <BuildCommand>make</BuildCommand>
+        <PreprocessFileCommand/>
+        <SingleFileCommand/>
+        <MakefileGenerationCommand/>
+        <ThirdPartyToolName>None</ThirdPartyToolName>
+        <WorkingDirectory>/home/lieven/workspace/limero-lpos</WorkingDirectory>
+      </CustomBuild>
+      <AdditionalRules>
+        <CustomPostBuild/>
+        <CustomPreBuild/>
+      </AdditionalRules>
+      <Completion EnableCpp11="no" EnableCpp14="no">
+        <ClangCmpFlagsC/>
+        <ClangCmpFlags/>
+        <ClangPP/>
+        <SearchPaths/>
+      </Completion>
+    </Configuration>
+  </Settings>
+  <VirtualDirectory Name="DWM1000">
+    <File Name="libraries/DWM1000/DWM1000_Anchor.cpp"/>
+    <File Name="libraries/DWM1000/DWM1000_Anchor.h"/>
+    <File Name="libraries/DWM1000/DWM1000_Tag.cpp"/>
+    <File Name="libraries/DWM1000/DWM1000_Tag.h"/>
+    <File Name="libraries/DWM1000/deca_device.c"/>
+    <File Name="libraries/DWM1000/deca_device_api.h"/>
+    <File Name="libraries/DWM1000/deca_mutex.c"/>
+    <File Name="libraries/DWM1000/deca_param_types.h"/>
+    <File Name="libraries/DWM1000/deca_params_init.c"/>
+    <File Name="libraries/DWM1000/deca_range_tables.c"/>
+    <File Name="libraries/DWM1000/deca_regs.h"/>
+    <File Name="libraries/DWM1000/deca_sleep.c"/>
+    <File Name="libraries/DWM1000/deca_sleep.h"/>
+    <File Name="libraries/DWM1000/deca_spi.c"/>
+    <File Name="libraries/DWM1000/deca_spi.h"/>
+    <File Name="libraries/DWM1000/deca_types.h"/>
+    <File Name="libraries/DWM1000/deca_version.h"/>
+    <File Name="libraries/Ebos/static_labels.cpp"/>
+    <File Name="libraries/DWM1000/Gpio.cpp"/>
+    <File Name="libraries/DWM1000/Gpio.h"/>
+    <File Name="libraries/DWM1000/spi.c"/>
+    <File Name="libraries/DWM1000/spi.h"/>
+    <File Name="libraries/DWM1000/spi_register.h"/>
+    <File Name="libraries/DWM1000/Peripheral.h"/>
+    <File Name="libraries/DWM1000/Peripheral_ESP8266.cpp"/>
+    <File Name="libraries/DWM1000/decaSpi.cpp"/>
+    <File Name="libraries/DWM1000/decaSpi.h"/>
+    <File Name="libraries/DWM1000/DWM1000_Message.h"/>
+    <File Name="libraries/DWM1000/DWM1000.cpp"/>
+    <File Name="libraries/DWM1000/DWM1000.h"/>
+  </VirtualDirectory>
+  <Dependencies Name="Debug"/>
+  <Dependencies Name="Release"/>
+  <Dependencies Name="upload"/>
+</CodeLite_Project>

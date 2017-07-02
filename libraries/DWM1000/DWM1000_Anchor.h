@@ -25,6 +25,8 @@ class DWM1000_Anchor: public Actor,public DWM1000
     uint32_t _resps;
     uint32_t _errs;
     uint32_t _missed;
+
+    
     uint8_t _lastSequence;
     static DWM1000_Anchor* _anchor;
 //   enum { WAIT_POLL, WAIT_FINAL } _state;
@@ -38,7 +40,7 @@ class DWM1000_Anchor: public Actor,public DWM1000
     Str _panAddress;
     Cbor _irqEvent;
     bool _hasIrqEvent;
-    uint32_t _distanceInCm;
+ //   uint32_t _distanceInCm;
     uint8_t _blinkSequence;
     typedef  enum { RCV_ANY=H("RCV_ANY"),
                     RCV_POLL=H("RCV_POLL"),

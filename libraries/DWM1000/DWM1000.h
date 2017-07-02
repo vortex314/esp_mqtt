@@ -36,6 +36,25 @@ typedef enum {
 #define DWM_PIN_RESET D1
 #define DWM_PIN_IRQ D2
 
+
+template <typename T> void le(uint8_t* dst,T v)
+{
+    for(int i=0; i<sizeof(T); i++) {
+        dst[i]=v & 0xFF;
+        v >>=8;
+    }
+}
+
+
+template <typename T> void le(T& v,uint8_t* src)
+{
+    v=0;
+    for(int i=sizeof(T)-1; i>=0; i--) {
+        v <<=8;
+        v += src[i];
+    }
+}
+
 class Timeout
 {
 public:
@@ -75,6 +94,9 @@ public:
     uint8_t _dataRate;
     uint8_t _pacSize;
     uint8_t _sequence;
+    int32_t _x;             // abs pos in cm
+    int32_t _y;
+    uint32_t _distance;  // dist in cm
     typedef enum  {
         RCV_ANY = H("RCV_ANY"), RCV_RESP = H("SND_POLL")
     } State;
@@ -105,6 +127,7 @@ public:
     uint8_t sequence() {
         return _sequence;
     }
+
 
 private:
 

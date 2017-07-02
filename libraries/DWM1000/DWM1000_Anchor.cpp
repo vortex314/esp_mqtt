@@ -24,6 +24,7 @@ extern "C" {
 #define RNG_DELAY_MS 1000 /* Inter-ranging delay period, in milliseconds. */
 #define TX_ANT_DLY 16436 /* Default antenna delay values for 64 MHz PRF. See NOTE 1 below. */
 #define RX_ANT_DLY 16436
+
 /* Indexes to access some of the fields in the frames defined above. */
 #define ALL_MSG_SN_IDX 2
 #define FINAL_MSG_POLL_TX_TS_IDX 10
@@ -38,7 +39,8 @@ extern "C" {
 //#define POLL_TX_TO_RESP_RX_DLY_UUS 150
 /* This is the delay from Frame RX timestamp to TX reply timestamp used for calculating/setting the DW1000's delayed TX function. This includes the
  * frame length of approximately 2.66 ms with above configuration. */
-//#define RESP_RX_TO_FINAL_TX_DLY_UUS 3100
+//
+#define RESP_RX_TO_FINAL_TX_DLY_UUS 3100
 /* Receive response timeout. See NOTE 5 below. */
 #define RESP_RX_TIMEOUT_UUS 2700
 
@@ -171,7 +173,7 @@ void DWM1000_Anchor::calcFinalMsg()
 
     tof = tof_dtu * DWT_TIME_UNITS;
     distance = tof * SPEED_OF_LIGHT;
-    _distanceInCm = distance * 100.0;
+    _distance = distance * 100.0;
     INFO(" >>>>>>>>> distance : %f for TAG : %X ", distance,
          (_finalMsg.src[0] << 8) + _finalMsg.src[1]);
 
@@ -266,6 +268,8 @@ WAIT_FINAL: {
             FrameType ft = readMsg(signal);
             if (ft == FT_FINAL) {
                 calcFinalMsg();
+                sendBlinkMsg();
+//                goto WAIT_RXD; // just send a blink
             } else {
                 WARN(" unexpected frame type %s",uid.label(ft));
             }
@@ -305,6 +309,7 @@ void DWM1000_Anchor::setup()
     dwt_enableframefilter(DWT_FF_DATA_EN | DWT_FF_BEACON_EN);
     dwt_setinterrupt(DWT_INT_RFCG | DWT_INT_RFTO , 1); // enable
     attachInterrupt(digitalPinToInterrupt(D2), dwt_isr, RISING);
+
     /* Set expected response's delay and timeout. See NOTE 4 and 5 below.
      * As this example only handles one incoming frame with always the same delay and timeout, those values can be set here once for all. */
     /*    dwt_setrxaftertxdelay(POLL_TX_TO_RESP_RX_DLY_UUS);
