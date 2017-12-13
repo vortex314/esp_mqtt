@@ -14,7 +14,7 @@
 #define KEY_SIZE 40
 #define VALUE_SIZE 60
 
-Config::Config() : json(512)
+Config::Config() : _strBuffer(1024),_jsonBuffer(1024),_nameSpace(30),_loaded(false)
 {
 
 }
@@ -23,12 +23,6 @@ Config::~Config()
 {
 
 }
-
-const char* Config::summary(){
-    load();
-    return json.c_str();
-}
-
 
 void Config::initMagic()
 {
@@ -40,8 +34,7 @@ void Config::initMagic()
 }
 
 bool Config::checkMagic()
-{
-    uint32_t word = 0;
+{    uint32_t word = 0;
     uint32_t i = 3;
     while (true) {
         word += EEPROM.read(i);
@@ -65,13 +58,15 @@ void Config::clear()
     EEPROM.write(address++, '}');
     EEPROM.write(address++, '\0');
     EEPROM.end();
+    _loaded=false;
+    load();
 }
 
 void Config::load()
 {
-    if ( json.length() ) {
-        return;
-    }
+    if ( _loaded ) return;
+
+
     EEPROM.begin(EEPROM_SIZE);
     if (!checkMagic()) {
         DEBUG(" initialize EEPROM with empty config.");
@@ -81,236 +76,203 @@ void Config::load()
         EEPROM.write(address++, '}');
         EEPROM.write(address++, '\0');
     };
-    json.clear();
+    _strBuffer.clear();
     uint8_t b;
     int i=4;
     while (true) {
         b = EEPROM.read(i++);
         if (b == 0)
             break;
-        json.write(b);
+        _strBuffer.write(b);
     }
-    json.write((uint8_t)0);
     EEPROM.end();
-//	DEBUG(str.c_str());
-    json.parse();
-    INFO(" json config : %s",json.c_str());
+    _root = & _jsonBuffer.parseObject(_strBuffer.c_str());
+    if ( _root->success()) {
+        _loaded=true;
+    } else {
+        WARN(" EEPROM load failed !  Clearing data ...");
+        clear();
+        _loaded =false;
+         
+    }
 }
+
+const char* Config::clone(const char* s) {
+    char* p=(char*)_jsonBuffer.alloc(strlen(s)+1);
+    strcpy(p,s);
+    return p;
+}
+
 
 void Config::save()
 {
-//	DEBUG(str.c_str());
+
+    char json[1024];
+
+    size_t actualLen = _root->printTo(json);
     EEPROM.begin(EEPROM_SIZE);
     int address = 4;
     initMagic();
-    for (int i = 0; i < json.length(); i++)
-        EEPROM.write(address++, json.peek(i));
+    int i=0;
+    while(json[i]) {
+        EEPROM.write(address++, json[i++]);
+    }
+
     EEPROM.write(address++,'\0');
 //    ASSERT_LOG(EEPROM.commit());
     EEPROM.end();
 }
 
-
-
-bool copyExcept(Json& result,Json& input,const char *name)
+//======================================NAMESPACE 
+JsonObject& Config::nameSpace()
 {
-    if (input.parse() != E_OK) {
-        WARN(" invalid JSON ");
-        return false;
-    }
-    Str key(30), value(60);
-    input.rewind();
-    result.clear();
-    if ( input.getMap()) {
-        result.addMap();
-        while (true) {
-            if (input.get(key)) {
-                if ( key == name ) {
-                    input.next();
-                    continue;
-                };
-                result.addKey(key.c_str());
-                if (input.getType() == Json::JSON_STRING) {
-                    input.get(value);
-                    result.add(value);
-                } else if (input.getType() == Json::JSON_NUMBER) {
-                    uint32_t d;
-                    input.get(d);
-                    result.add(d);
-                } else if (input.getType() == Json::JSON_BOOL) {
-                    bool flag;
-                    input.get(flag);
-                    result.add(flag);
-                } else {
-                    WARN(" invalid type ");
-                }
-            } else
-                break;
-        }
+
+    if ( _root->containsKey(_nameSpace.c_str())) {
+        JsonObject& jso =  (* _root)[_nameSpace.c_str()];
+        return jso;
     } else {
-        WARN(" no JSON OBject found ");
+        JsonObject& jso =  _root->createNestedObject(clone(_nameSpace.c_str()));
+        return jso;
     }
-    DEBUG(" result : %s ",result.c_str());
-    DEBUG(" input : %s ",input.c_str());
-    DEBUG(" except: %s ",name);
-    return true;
 }
 
-
-void Config::set(const char* key,const char* value)
+void Config:: setNameSpace(const char* ns)
 {
-    Str str(0);
-    str.map((uint8_t*)value,strlen(value));
-    set(key,str);
+    _nameSpace=ns;
 }
 
+const char* Config:: getNameSpace()
+{
+    return   _nameSpace.c_str();
+}
+//==================================================
 bool Config::hasKey(const char* key)
 {
-    json.rewind();
-    return json.findKey(key);
+    JsonObject& ns=nameSpace();
+    if ( ns.containsKey(key)) {
+        return true;
+    }
+    return false;
 }
 
 void Config::remove(const char* key)
 {
     load();
-    Json output(EEPROM_SIZE);
-    Str valueConfig(60);
-
-//    DEBUG(" set %s:%s ",key,value.c_str());
-//    DEBUG(" json before set : %s",json.c_str());
-    json.rewind();
-    if ( !json.findKey(key) ) {
-        return;
-    }
-    if ( copyExcept(output,json,key)) {
-        output.addBreak();
-        json=output;
-    }
+    JsonObject& ns=nameSpace();
+    ns.remove(key);
     INFO(" Config => SAVE  remove %s ",key);
-    save();
-    json.parse();
-//    DEBUG(" json after set : %s",json.c_str());
 
 }
 
 
+
+void Config::set(const char* key,const char* value)
+{
+    JsonObject& ns=nameSpace();
+    ns[clone(key)]=clone(value);
+}
+
 void Config::set(const char* key, Str& value)
 {
     load();
-    Json output(EEPROM_SIZE);
-    Str valueConfig(60);
-
-//    DEBUG(" set %s:%s ",key,value.c_str());
-//    DEBUG(" json before set : %s",json.c_str());
-    json.rewind();
-    if ( json.findKey(key) &&  json.get(valueConfig) && valueConfig ==  value) {
-
-        return;
-    }
-    if ( copyExcept(output,json,key)) {
-        output.addKey(key);
-        output.add(value);
-        output.addBreak();
-        json=output;
-    }
-    INFO(" Config => SET  %s = %s",key,value.c_str());
-    save();
-    json.parse();
-//    DEBUG(" json after set : %s",json.c_str());
-
+    set(key,value.c_str());
 }
 
 void Config::set(const char* key, uint32_t value)
 {
     load();
-    Json output(EEPROM_SIZE);
-    uint32_t valueConfig;
-
-//    DEBUG(" set %s:%d ",key,value);
-//    DEBUG(" json before set : %s",json.c_str());
-    json.rewind();
-    if ( json.findKey(key) &&  json.get(valueConfig) && valueConfig ==  value) {
-        return;
-    }
-    if ( copyExcept(output,json,key)) {
-        output.addKey(key);
-        output.add(value);
-        output.addBreak();
-        json=output;
-    }
-    INFO(" Config => SET  %s = %d",key,value);
-    save();
-    json.parse();
+    JsonObject& ns=nameSpace();
+    ns[clone(key)]=value;
 }
 
 
 void Config::set(const char* key, int32_t value)
 {
     load();
-    Json output(EEPROM_SIZE);
-    int32_t valueConfig;
-
-//    DEBUG(" set %s:%d ",key,value);
-//    DEBUG(" json before set : %s",json.c_str());
-    json.rewind();
-    if ( json.findKey(key) &&  json.get(valueConfig) && valueConfig ==  value) {
-        return;
-    }
-    if ( copyExcept(output,json,key)) {
-        output.addKey(key);
-        output.add(value);
-        output.addBreak();
-        json=output;
-    }
-    INFO(" Config => SET  %s = %d",key,value);
-    save();
-    json.parse();
+    JsonObject& ns=nameSpace();
+    ns[clone(key)]=value;
 }
+
+void Config::set(const char* key, double value)
+{
+    load();
+    JsonObject& ns=nameSpace();
+    INFO(" SET %s=%f ",key,value);
+    ns[clone(key)]=value;
+}
+
 
 void Config::get(const char* key, Str& value,
                  const char* defaultValue)
 {
 
     load();
-//	DEBUG(" input :%s",input.c_str());
-//    json.append("{}");
-    json.rewind();
-    if (json.findKey(key)) {
-        json.get(value);
+    JsonObject& ns=nameSpace();
+    if ( ns.containsKey(key)) {
+        value= ns[key];
     } else {
-        value = defaultValue;
-        set(key,value);
+        set(key,defaultValue);
+        value=defaultValue;
     }
-    INFO(" Config => GET %s = %s ",key,value.c_str());
+    INFO(" %s.%s = '%s' ",_nameSpace.c_str(),key,value.c_str());
 }
 
 
 void Config::get(const char* key, int32_t& value,
                  int32_t defaultValue)
 {
-//    load();
-//	DEBUG(" input :%s",input.c_str());
-    json.rewind();
-    if (json.findKey(key)) {
-        json.get(value);
+    load();
+    JsonObject& ns=nameSpace();
+    if ( ns.containsKey(key)) {
+        value= ns[key];
     } else {
-        value = defaultValue;
-        set(key,value);
+        set(key,defaultValue);
+        value=defaultValue;
     }
-    INFO(" Config => GET %s = %d ",key,value);
+    INFO(" %s.%s = %d ",_nameSpace.c_str(),key,value);
 }
 
 void Config::get(const char* key, uint32_t& value,
                  uint32_t defaultValue)
 {
-//    load();
-//	DEBUG(" input :%s",input.c_str());
-    json.rewind();
-    if (json.findKey(key)) {
-        json.get(value);
+    load();
+    JsonObject& ns=nameSpace();
+    if ( ns.containsKey(key)) {
+        value= ns[key];
     } else {
-        value = defaultValue;
-        set(key,value);
+       set(key,defaultValue);
+        value=defaultValue;
     }
-    INFO(" Config => GET %s = %d ",key,value);
+    INFO(" %s.%s = %u ",_nameSpace.c_str(),key,value);
+}
+
+void Config::get(const char* key, double& value,
+                 double defaultValue)
+{
+    load();
+    JsonObject& ns=nameSpace();
+    if ( ns.containsKey(key)) {
+        value= ns[key];
+    } else {
+        set(key,defaultValue);
+        value=defaultValue;
+    }
+    INFO(" %s.%s = %f ",_nameSpace.c_str(),key,value);
+}
+
+
+void Config::print(Str& str)
+{
+    load();
+    String string;
+    _root->printTo(string);
+    str = string.c_str();
+}
+
+void Config::printPretty(Str& str)
+{
+    load();
+    String string;
+    _root->prettyPrintTo(string);
+    str = string.c_str();
 }

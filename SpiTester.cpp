@@ -1,5 +1,5 @@
 #include "SpiTester.h"
-
+#include <pins_arduino.h>
 
 SpiTester::SpiTester(const char* name) :Actor(name),_outBytes(100),_inBytes(100),_spi(1)
 {
@@ -33,7 +33,7 @@ void SpiTester::setup()
     _spi.setMode(SPI_MODE_PHASE1_POL0);
     _spi.setLsbFirst(false);
     _spi.init();
-        int pin = D1;	// RESET PIN == D1 == GPIO5
+        int pin = 5;	// RESET PIN == D1 == GPIO5
     pinMode(pin, 1);// OUTPUT
     digitalWrite(pin, 0);// PULL LOW
     Sys::delay(10);// 10ms

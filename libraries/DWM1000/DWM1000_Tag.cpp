@@ -310,7 +310,7 @@ FrameType DWM1000_Tag::readMsg(const dwt_callback_data_t* signal)
     }
 }
 
-
+static const char* role="T";
 
 void DWM1000_Tag::setup()
 {
@@ -324,9 +324,17 @@ void DWM1000_Tag::setup()
     dwt_setdblrxbuffmode(false);
     dwt_setinterrupt(DWT_INT_RFCG | DWT_INT_RFTO , 1); // enable
     pinMode(DWM_PIN_IRQ, 0); // INPUT
-    attachInterrupt(digitalPinToInterrupt(D2), dwt_isr, RISING);
+    attachInterrupt(digitalPinToInterrupt(4), dwt_isr, RISING);
     _count = 0;
     timeout(5000);
+    
+     Property<const char*>::build(role, id(), H("role"), 20000);
+    Property<uint32_t>::build(_interrupts, id(), H("interrupts"), 1000);
+    Property<uint32_t>::build(_polls, id(), H("polls"), 1000);
+    Property<uint32_t>::build(_resps, id(), H("responses"), 1000);
+    Property<uint32_t>::build(_finals, id(), H("finals"), 1000);
+    Property<uint32_t>::build(_blinks, id(), H("blinks"), 1000);
+Property<uint32_t>::build(_distance, id(), H("distance"), 1000);
 }
 
 void DWM1000_Tag::loop()
@@ -363,7 +371,7 @@ ENABLE : {
                 INFO(
                     " SYS_MASK : %X SYS_STATUS : %X SYS_STATE: %X state : %s IRQ : %d",
                     sys_mask, sys_status, sys_state, uid.label(_state),
-                    digitalRead(D2));
+                    digitalRead(4));
                 WARN(" enable RXD ");
                 dwt_setrxtimeout(60000);
                 dwt_rxenable(0);

@@ -11,7 +11,13 @@
  * 
  *  ATTENTION : LOGF call Sys::hostname, could invoke another call to Sys::hostname with LOGF,.... 
  * 
+ * 
+ * 
  */
+ 
+ uint32_t Sys::getFreeHeap(){
+     return ESP.getFreeHeap();
+ }
 char Sys::_hostname[30];
 uint64_t Sys::_boot_time=0;
 

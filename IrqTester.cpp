@@ -17,8 +17,8 @@ IrqTester::~IrqTester()
 {
 }
 
-#define PIN_IRQ_IN D2// PIN == D2 == GPIO4
-#define PIN_IRQ_OUT D1 // PIN == D1 == GPIO5
+#define PIN_IRQ_IN 4// PIN == D2 == GPIO4
+#define PIN_IRQ_OUT 5 // PIN == D1 == GPIO5
 
 // loopback between D1 and D2 == test speed delay of IRQ ==> result 4-5 µSec
 

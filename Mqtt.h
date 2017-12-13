@@ -27,7 +27,7 @@ private:
     int _client_state;
 
     Str _host;
-    uint16_t _port;
+    uint32_t _port;
     Str _clientId;
     Str _user;
     Str _password;
@@ -43,26 +43,29 @@ private:
     Str _prefix;
     Str _topic;
     Bytes _message;
+    uid_t _wifi;
     static void callback(char* topic,byte* message,uint32_t length);
 
 
 public:
     static Mqtt* _thisMqtt;
 
-    PubSubClient* _client;
+    PubSubClient* _pubSub;
     void setLog(bool on);
     Mqtt(const char* name,uint32_t maxSize);
     virtual ~Mqtt();
     void setup();
+    void onWifiEvent(Cbor& msg);
     void onEvent(Cbor& cbor);
     void onActorRegister(Cbor& cbor);
     void log(char* start,uint32_t length);
+    void setWifiId(uid_t wifi){_wifi=wifi;};
 //   static void onConnectionLost(void *context, char *cause);
 //    static int onMessage(void *context, char *topicName, int topicLen, MQTTAsync_message *message);
 
     void disconnect(Cbor& cbor);
 //   static void onDisconnect(void* context, MQTTAsync_successData* response);
-    void connect(Cbor& cbor);
+    bool pubSubConnect();
 //   static void onConnectFailure(void* context, MQTTAsync_failureData* response);
 //    static void onConnectSuccess(void* context, MQTTAsync_successData* response);
     void subscribe(Cbor& cbor);

@@ -91,7 +91,7 @@ DWM1000_Anchor* DWM1000_Anchor::_anchor;
 DWM1000_Anchor::DWM1000_Anchor(const char* name) :
     Actor(name),
     _spi(HSPI),
-    _irq(D2),
+    _irq(4), // PIN_IRQ_IN 4// PIN == D2 == GPIO4
     _panAddress(3),
     _irqEvent(100),
     _blinkTimer(3000)
@@ -297,6 +297,8 @@ void DWM1000_Anchor::txcallback(const dwt_callback_data_t* signal)
     _anchor->FSM(signal);
 }
 
+static const char* role="A";
+
 //===================================================================================
 void DWM1000_Anchor::setup()
 {
@@ -308,7 +310,7 @@ void DWM1000_Anchor::setup()
     dwt_setdblrxbuffmode(false);
     dwt_enableframefilter(DWT_FF_DATA_EN | DWT_FF_BEACON_EN);
     dwt_setinterrupt(DWT_INT_RFCG | DWT_INT_RFTO , 1); // enable
-    attachInterrupt(digitalPinToInterrupt(D2), dwt_isr, RISING);
+    attachInterrupt(digitalPinToInterrupt(4), dwt_isr, RISING);
 
     /* Set expected response's delay and timeout. See NOTE 4 and 5 below.
      * As this example only handles one incoming frame with always the same delay and timeout, those values can be set here once for all. */
@@ -319,7 +321,13 @@ void DWM1000_Anchor::setup()
 
     eb.onDst(id()).call(this);
     timeout(5000);
-
+     Property<const char*>::build(role, id(), H("role"), 20000);
+ Property<uint32_t>::build(_interrupts, id(), H("interrupts"), 1000);
+    Property<uint32_t>::build(_polls, id(), H("polls"), 1000);
+    Property<uint32_t>::build(_resps, id(), H("responses"), 1000);
+    Property<uint32_t>::build(_finals, id(), H("finals"), 1000);
+    Property<uint32_t>::build(_blinks, id(), H("blinks"), 1000);
+Property<float>::build(_distance, id(), H("distance"), 1000);
 }
 
 Timer opsTime("DW1000 Action", 10);
@@ -354,7 +362,7 @@ ENABLE : {
                 INFO(
                     " SYS_MASK : %X SYS_STATUS : %X SYS_STATE: %X state : %s IRQ : %d",
                     sys_mask, sys_status, sys_state, uid.label(_state),
-                    digitalRead(D2));
+                    digitalRead(4));
                 WARN(" enable RXD ");
                 dwt_setrxtimeout(60000);
                 dwt_rxenable(0);

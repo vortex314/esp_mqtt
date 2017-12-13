@@ -3,6 +3,7 @@
 #include <Peripheral.h>
 #include <Config.h>
 #include <decaSpi.h>
+#include <pins_arduino.h>
 
 /* Default antenna delay values for 64 MHz PRF. See NOTE 1 below. */
 #define TX_ANT_DLY 16436
@@ -78,7 +79,7 @@ DWM1000::~DWM1000()
 void DWM1000::resetChip()
 {
     INFO("Reset DWM1000");
-    int pin = D1;   // RESET PIN == D1 == GPIO5
+    int pin = 5;   // RESET PIN == D1 == GPIO5
     pinMode(pin, 1);   // OUTPUT
     digitalWrite(pin, 0);   // PULL LOW
     Sys::delay(10);   // 10ms
@@ -171,8 +172,9 @@ void DWM1000::setup()
 
     dwt_setrxantennadelay(RX_ANT_DLY); /* Apply default antenna delay value. See NOTE 1 below. */
     dwt_settxantennadelay(TX_ANT_DLY);
-    config.get("lpos.x",_x,1000);
-    config.get("lpos.y",_y,2000);
+    config.setNameSpace("lpos");
+    config.get("x",_x,1000);
+    config.get("y",_y,2000);
 }
 
 FrameType DWM1000::getFrameType(DwmMsg& msg)

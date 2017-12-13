@@ -2212,6 +2212,7 @@ uint8 dwt_checkIRQ(void)
  *
  * no return value
  */
+ #define ICACHE_RAM_ATTR  __attribute__((section(".iram.text")))
 ICACHE_RAM_ATTR void dwt_isr(void) // Assume interrupt can supply context
 {
     uint32  status = 0;

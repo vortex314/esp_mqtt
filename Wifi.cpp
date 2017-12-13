@@ -20,8 +20,7 @@ Wifi::~Wifi()
 
 void Wifi::init()
 {
-    _ssid="SSID";
-    _password="PSWD";
+
 }
 
 void Wifi::switchState(int st)
@@ -33,7 +32,7 @@ void Wifi::switchState(int st)
             INFO(" ip : %s ", WiFi.localIP().toString().c_str());
             eb.event(id(),H("connected")).addKeyValue(H("data"),true);
             eb.send();
-        } else {
+        } else  if (st == H("disconnected")) {
             WARN(" Wifi Disconnected.");
             eb.event(id(),H("disconnected")).addKeyValue(H("data"),true);
             eb.send();
@@ -43,9 +42,14 @@ void Wifi::switchState(int st)
 
 void Wifi::setup()
 {
-    switchState(H("disconnected"));
-    WiFi.hostname(Sys::hostname());
-    WiFi.begin(_ssid.c_str(), _password.c_str());
+    config.setNameSpace("wifi");
+    config.get("ssid",_ssid,"Merckx3");
+    config.get("password",_password,"LievenMarletteEwoutRonald");
+    config.get("host",_hostname,Sys::hostname());
+    state(0);
+//    switchState(H("disconnected"));
+    WiFi.hostname(_hostname.c_str());
+//   WiFi.begin(_ssid.c_str(), _password.c_str());
     WiFi.enableSTA(true);
 }
 
@@ -59,11 +63,13 @@ void Wifi::loop()
             DEBUG(" still connecting ");
             return;
         } else
-            INFO(" starting Wifi host : '%s' on SSID : '%s' '%s' ", getHostname(),
+            INFO(" starting Wifi host : '%s' on SSID : '%s' PSWD : '%s' ", getHostname(),
                  getSSID(), getPassword());
 
     }
-    switchState(WiFi.status() == WL_CONNECTED ? H("connected") : H("disconnected"));
+    if ( WiFi.status() == WL_CONNECTED ) switchState(H("connected"));
+    if (  WiFi.status() == WL_DISCONNECTED ) switchState(H("disconnected"));
+//   switchState(WiFi.status() == WL_CONNECTED ? H("connected") : H("disconnected"));
 }
 
 void Wifi::setConfig(Str& ssid, Str& password, Str& hostname)

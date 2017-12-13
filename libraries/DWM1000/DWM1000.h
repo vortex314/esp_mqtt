@@ -10,6 +10,7 @@
 #include <Log.h>
 #include <EventBus.h>
 #include <Peripheral.h>
+#include <Property.h>
 #include <DWM1000_Message.h>
 
 extern "C" {
@@ -34,7 +35,7 @@ typedef enum {
 } FrameType;
 
 #define DWM_PIN_RESET D1
-#define DWM_PIN_IRQ D2
+#define DWM_PIN_IRQ 4
 
 
 template <typename T> void le(uint8_t* dst,T v)

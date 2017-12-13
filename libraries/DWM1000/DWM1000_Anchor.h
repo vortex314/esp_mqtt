@@ -40,6 +40,7 @@ class DWM1000_Anchor: public Actor,public DWM1000
     Str _panAddress;
     Cbor _irqEvent;
     bool _hasIrqEvent;
+    float _distance;
  //   uint32_t _distanceInCm;
     uint8_t _blinkSequence;
     typedef  enum { RCV_ANY=H("RCV_ANY"),

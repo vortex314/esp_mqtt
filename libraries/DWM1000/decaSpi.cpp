@@ -1,5 +1,6 @@
 #include <Peripheral.h>
 #include <deca_device_api.h>
+#include <Arduino.h>
 
 Spi* _gSpi;     // to support irq 
 

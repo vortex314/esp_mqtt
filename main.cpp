@@ -58,8 +58,8 @@ LedBlinker led;
 Mqtt mqtt("mqtt",1024);
 System systm("system");
 MqttJson router("mqttJson",1024);
-DWM1000_Tag dwm1000Tag("TAG");
-DWM1000_Anchor dwm1000Anchor("ANCHOR");
+DWM1000_Tag dwm1000Tag("dwm1000");
+DWM1000_Anchor dwm1000Anchor("dwm1000");
 Memory memory("memory");
 Configurator configurator("config");
 //SpiTester spiTester("spiTester");
@@ -69,7 +69,7 @@ Config config;
 extern void waitConfig();
 /*
 // A UDP instance to let us send and receive packets over UDP*/
-WiFiUDP udpClient;
+// WiFiUDP udpClient;
 
 // Create a new syslog instance with LOG_KERN facility
 Syslog *syslog;
@@ -80,7 +80,7 @@ uint32_t udpPort;
 void syslogger(char* start,uint32_t length)
 {
     if ( syslog==0) {
-        syslog = new Syslog(udpClient,udpHost.c_str() , udpPort, Sys::hostname(), "system", LOG_KERN);
+//       syslog = new Syslog(udpClient,udpHost.c_str() , udpPort, Sys::hostname(), "system", LOG_KERN);
     }
     start[length]='\0';
     syslog->log(start);
@@ -89,14 +89,28 @@ void syslogger(char* start,uint32_t length)
 
 enum { NONE,TAG,ANCHOR } DWM1000Role=NONE;
 
+#include <vector.h>
+etl::vector<uint32_t,100> v;
+
+
 void setup()
 {
-
-
     Serial.begin(BAUDRATE, SerialConfig::SERIAL_8E1, SerialMode::SERIAL_FULL); // 8E1 for STM32
     Serial.setDebugOutput(false);
     Sys::delay(1000);
+    v.push_back(3);
+/*    WiFi.setAutoConnect(false);
+    WiFi.setAutoReconnect(false);
+    WiFi.enableAP(false);
+    WiFi.enableSTA(false);
+    WiFi.mode(WIFI_OFF); */
+    config.load();
     waitConfig();
+    eb.onAny().call([](Cbor& msg) { // Log all events -> first handler
+        Str str(256);
+        eb.log(str,msg);
+        INFO("%s",str.c_str());
+    });
 
     String hostname;
     Str strHostname(30),ssid(30),pswd(60),logLevel(5),logOutput(5);
@@ -113,16 +127,16 @@ void setup()
     logger.level(Log::LOG_INFO);
     INFO("version : " __DATE__ " " __TIME__ " host %s",hn);
 
-    config.get("wifi.ssid",ssid,"SSID");
-    config.get("wifi.pswd",pswd,"PSWD");
+    config.setNameSpace("log");
 
-    config.get("log.level",logLevel,"I");
+    config.get("level",logLevel,"I");
     logger.setLogLevel(logLevel.peek(0));
-    config.get("log.output",logOutput,"S");
+    config.get("output",logOutput,"S");
     /*  cannot log through UDP too much overhead*/
     if ( logOutput.peek(0)=='U') {
-        config.get("syslog.host",udpHost,"192.168.0.150");
-        config.get("syslog.port",udpPort,514);
+        config.setNameSpace("syslog");
+        config.get("host",udpHost,"192.168.0.150");
+        config.get("port",udpPort,514);
         logger.setOutput(syslogger);
     };
     /* Cannot log through MQTT too much overhead or DWM1000 protocol
@@ -135,24 +149,18 @@ void setup()
     hostname=hn;
     strHostname = hn;
 
-    wifi.setConfig(ssid,pswd,strHostname);
 //    mdns.setConfig(strHostname,2000);
+    wifi.setup();
     INFO(" starting Wifi host : '%s' on SSID : '%s' '%s' ", wifi.getHostname(),
          wifi.getSSID(), wifi.getPassword());
 
-    uint32_t port;
-//    config.clear();
-    eb.onAny().call([](Cbor& msg) { // Log all events
-        Str str(256);
-        eb.log(str,msg);
-        DEBUG("%s",str.c_str());
-    });
+
 
     uid.add(labels,LABEL_COUNT);
     led.setMqtt(mqtt.id());
     led.setWifi(wifi.id());
 //    mqtt.setWifi(wifi.id());
-    wifi.setup();
+//    wifi.setup();
 //    mdns.setup();
 
 //    memory.setup();
@@ -161,7 +169,8 @@ void setup()
     configurator.setup();
 
     Str role(3);
-    config.get("lpos.role",role,"A");
+    config.setNameSpace("lpos");
+    config.get("role",role,"A");
 
 
     uint8_t mac[8];
@@ -179,7 +188,7 @@ void setup()
         dwm1000Anchor.setup();
     }
 
-
+    // mqtt.setHost("limero.ddns.net")
     mqtt.setup();
     router.setMqttId(mqtt.id());
     router.setup();
@@ -187,23 +196,7 @@ void setup()
     led.setup();
     systm.setup();
 
-    int32_t x=-1000;
-    uint8_t data[4];
-    le(data,x);
-    int32_t x2;
-    le(x2,data);
-    Str hex(20);
-    hex.appendHex(data,4,':');
-    
-    
-    Json json(100);
-    json.addMap();
-    json.addKey("x");
-    json.add(x);
-    json.addBreak();
-    INFO(" x :  %d x2 : %d  data : %s json : %s ",x,x2,hex.c_str(),json.c_str());
-
-//	eb.onEvent(H("system"),H("state")).subscribe(&router,(MethodHandler)&Router::ebToMqtt); // publisize timer-state events
+    config.save();
 
 
     return;
