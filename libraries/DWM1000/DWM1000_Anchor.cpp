@@ -215,7 +215,8 @@ FrameType DWM1000_Anchor::readMsg(const dwt_callback_data_t* signal)
 }
 
 //===================================================================================
-void DWM1000_Anchor::update(uint16_t src,uint8_t sequence) {
+void DWM1000_Anchor::update(uint16_t src,uint8_t sequence)
+{
     if ( sequence > (_lastSequence+1)) {
         WARN("dropped frames : %d",sequence-_lastSequence-1);
     }
@@ -321,13 +322,13 @@ void DWM1000_Anchor::setup()
 
     eb.onDst(id()).call(this);
     timeout(5000);
-     Property<const char*>::build(role, id(), H("role"), 20000);
- Property<uint32_t>::build(_interrupts, id(), H("interrupts"), 1000);
+    Property<const char*>::build(role, id(), H("role"), 20000);
+    Property<uint32_t>::build(_interrupts, id(), H("interrupts"), 1000);
     Property<uint32_t>::build(_polls, id(), H("polls"), 1000);
     Property<uint32_t>::build(_resps, id(), H("responses"), 1000);
     Property<uint32_t>::build(_finals, id(), H("finals"), 1000);
     Property<uint32_t>::build(_blinks, id(), H("blinks"), 1000);
-Property<float>::build(_distance, id(), H("distance"), 1000);
+    Property<float>::build(_distance, id(), H("distance"), 1000);
 }
 
 Timer opsTime("DW1000 Action", 10);
@@ -353,7 +354,7 @@ INIT: {
     }
 ENABLE : {
         while(true) {
-            timeout(1000);
+            timeout(100);
             PT_YIELD_UNTIL(timeout());
             if ( oldInterrupts == _interrupts) {
                 sys_mask = dwt_read32bitreg(SYS_MASK_ID);
@@ -388,9 +389,9 @@ ENABLE : {
 
 void DWM1000_Anchor::loop()
 {
- /*   if ( digitalRead(DWM_PIN_IRQ)) {
-        dwt_isr();
-    }*/
+    /*   if ( digitalRead(DWM_PIN_IRQ)) {
+           dwt_isr();
+       }*/
 }
 
 /*! ------------------------------------------------------------------------------------------------------------------

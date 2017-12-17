@@ -7,6 +7,9 @@
 #include "PubSubClient.h"
 #include "Arduino.h"
 
+#include <Actor.h>
+bool stopHeap(Actor* a,const char* s);
+
 PubSubClient::PubSubClient() {
     this->_state = MQTT_DISCONNECTED;
     this->_client = NULL;
@@ -342,6 +345,7 @@ boolean PubSubClient::loop() {
     return false;
 }
 
+
 boolean PubSubClient::publish(const char* topic, const char* payload) {
     return publish(topic,(const uint8_t*)payload,strlen(payload),false);
 }
@@ -362,7 +366,9 @@ boolean PubSubClient::publish(const char* topic, const uint8_t* payload, unsigne
         }
         // Leave room in the buffer for header and variable length field
         uint16_t length = 5;
+        stopHeap(0,"PubSUbClient::publish1");
         length = writeString(topic,buffer,length);
+        stopHeap(0,"PubSUbClient::publish2");
         uint16_t i;
         for (i=0;i<plength;i++) {
             buffer[length++] = payload[i];
@@ -371,6 +377,7 @@ boolean PubSubClient::publish(const char* topic, const uint8_t* payload, unsigne
         if (retained) {
             header |= 1;
         }
+        stopHeap(0,"PubSUbClient::publish3");
         return write(header,buffer,length-5);
     }
     return false;
@@ -455,9 +462,13 @@ boolean PubSubClient::write(uint8_t header, uint8_t* buf, uint16_t length) {
         bytesRemaining -= rc;
         writeBuf += rc;
     }
+    if ( stopHeap(0,"in write 1") ){
+        INFO(" HEAP length : %d ",length);
+    }
     return result;
 #else
     rc = _client->write(buf+(4-llen),length+1+llen);
+     stopHeap(0,"in write 2")
     lastOutActivity = millis();
     return (rc == 1+llen+length);
 #endif

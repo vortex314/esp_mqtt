@@ -24,7 +24,7 @@ get started quickly :
     - configure through serial port the MQTT settings and the role of the system : T(ag) or A(chor)
     - enjoy !
 
-
+https://drive.google.com/open?id=1sEt6OF94nYKO7jOcpxjCYkwHNYLjgiLhi7eMlyxKfjA
 
 
 ## TODO
