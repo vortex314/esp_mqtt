@@ -14,8 +14,9 @@ SKETCH=main.cpp
 #SERIAL_BAUD = 115200
 # uncomment this to use the 1M SPIFFS mapping
 #SPIFFS_SIZE = 1
+# -DMQTT_MAX_TRANSFER_SIZE=900
 USER_DEFINE = -Ilibraries/Common/src -I../pubsubclient/src -Ilibraries/Ebos -Ilibrariers/etl/src \
-	-DMQTT_MAX_PACKET_SIZE=768 -DMQTT_MAX_TRANSFER_SIZE=900 -DESP8266 \
+	-DMQTT_MAX_PACKET_SIZE=768  -DESP8266 \
 	-I../Arduino/libraries/SPI  -lc
 USER_LINK =  -lmain  
 OTA_IP = 192.168.1.184

@@ -59,7 +59,7 @@ public:
     void onEvent(Cbor& cbor);
     void onActorRegister(Cbor& cbor);
     void log(char* start,uint32_t length);
-    void setWifiId(uid_t wifi){_wifi=wifi;};
+    void setWifi(uid_t wifi){_wifi=wifi;};
 //   static void onConnectionLost(void *context, char *cause);
 //    static int onMessage(void *context, char *topicName, int topicLen, MQTTAsync_message *message);
 

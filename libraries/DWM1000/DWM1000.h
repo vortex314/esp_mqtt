@@ -38,7 +38,7 @@ typedef enum {
 #define DWM_PIN_IRQ 4
 
 
-template <typename T> void le(uint8_t* dst,T v)
+template <typename T> void little_endian(uint8_t* dst,T v)
 {
     for(int i=0; i<sizeof(T); i++) {
         dst[i]=v & 0xFF;
@@ -47,7 +47,7 @@ template <typename T> void le(uint8_t* dst,T v)
 }
 
 
-template <typename T> void le(T& v,uint8_t* src)
+template <typename T> void little_endian(T& v,uint8_t* src)
 {
     v=0;
     for(int i=sizeof(T)-1; i>=0; i--) {

@@ -120,13 +120,13 @@ void DWM1000_Tag::handleBlinkMsg()
     updateAnchors(_blinkMsg);
 }
 
-Str strLog(100);
+Str strLogTag(100);
 
 void logTag(const char* s, uint32_t state, uint8_t* buffer, uint32_t length)
 {
-    strLog.clear();
-    strLog.appendHex(buffer, length, ':');
-    INFO("%s %s %s", s, uid.label(state), strLog.c_str());
+    strLogTag.clear();
+    strLogTag.appendHex(buffer, length, ':');
+    INFO("%s %s %s", s, uid.label(state), strLogTag.c_str());
 }
 
 void DWM1000_Tag::updateAnchors(BlinkMsg& blinkMsg)
@@ -135,10 +135,11 @@ void DWM1000_Tag::updateAnchors(BlinkMsg& blinkMsg)
 
     if (anchors.count(address) == 0) {
         RemoteAnchor anchor(address,blinkMsg.sequence);
-        le(anchor._x,blinkMsg.x);
-        le(anchor._y,blinkMsg.y);
-        le(anchor._distance,blinkMsg.distance);
-        anchors.emplace(address, anchor);
+        little_endian(anchor._x,blinkMsg.x);
+        little_endian(anchor._y,blinkMsg.y);
+        little_endian(anchor._distance,blinkMsg.distance);
+        anchors.insert(std::pair<uint16_t,RemoteAnchor>(address,anchor));
+//       anchors.insert(address, anchor);
         INFO(" new anchor : %X x:%d y:%d dist: %d", address,anchor._x,anchor._y,anchor._distance);
     } else {
         RemoteAnchor& anchor = anchors.find(address)->second;
@@ -151,7 +152,8 @@ void DWM1000_Tag::updateAnchors(BlinkMsg& blinkMsg)
 void DWM1000_Tag::updateAnchors(uint16_t address, uint8_t sequence)
 {
     if (anchors.count(address) == 0) {
-        anchors.emplace(address, RemoteAnchor(address, sequence));
+        anchors.insert(std::pair<uint16_t,RemoteAnchor>(address,RemoteAnchor(address, sequence)));
+//        anchors.emplace(address, RemoteAnchor(address, sequence));
         INFO(" new anchor : %X", address);
     } else {
         anchors.find(address)->second.update(sequence);
@@ -161,7 +163,9 @@ void DWM1000_Tag::updateAnchors(uint16_t address, uint8_t sequence)
 
 void DWM1000_Tag::expireAnchors()
 {
-    std::map<uint16_t, RemoteAnchor>::iterator it;
+
+//    std::map<uint16_t, RemoteAnchor>::iterator it;
+    etl::map<uint16_t,RemoteAnchor,10>::iterator it;
     for (it = anchors.begin(); it != anchors.end(); ++it) {
         if (it->second.expired()) {
             INFO(" expired anchor : %X ", it->first);
@@ -180,7 +184,8 @@ bool DWM1000_Tag::pollAnchors()
         _sequence++;
     }
     uint32_t count = 0;
-    std::map<uint16_t, RemoteAnchor>::iterator it;
+ //   std::map<uint16_t, RemoteAnchor>::iterator it;
+ etl::map<uint16_t,RemoteAnchor,10>::iterator it;
     for (it = anchors.begin(); it != anchors.end(); ++it) {
         if (count++ == _anchorIndex) {
             _currentAnchor = it->second._address;
@@ -327,14 +332,14 @@ void DWM1000_Tag::setup()
     attachInterrupt(digitalPinToInterrupt(4), dwt_isr, RISING);
     _count = 0;
     timeout(5000);
-    
-     Property<const char*>::build(role, id(), H("role"), 20000);
+
+    Property<const char*>::build(role, id(), H("role"), 20000);
     Property<uint32_t>::build(_interrupts, id(), H("interrupts"), 1000);
     Property<uint32_t>::build(_polls, id(), H("polls"), 1000);
     Property<uint32_t>::build(_resps, id(), H("responses"), 1000);
     Property<uint32_t>::build(_finals, id(), H("finals"), 1000);
     Property<uint32_t>::build(_blinks, id(), H("blinks"), 1000);
-Property<uint32_t>::build(_distance, id(), H("distance"), 1000);
+    Property<uint32_t>::build(_distance, id(), H("distance"), 1000);
 }
 
 void DWM1000_Tag::loop()

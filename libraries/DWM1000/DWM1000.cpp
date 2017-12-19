@@ -204,9 +204,9 @@ void DWM1000::createBlinkFrame(BlinkMsg& blink)
     blink.sequence = _sequence++;
     for (int i = 0; i < 8; i++)
         blink.sourceLong[i] = _longAddress[7 - i];
-    le(blink.x,_x);
-    le(blink.y,_y);
-    le(blink.distance,_distance);
+    little_endian(blink.x,_x);
+    little_endian(blink.y,_y);
+    little_endian(blink.distance,_distance);
 }
 
 

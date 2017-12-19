@@ -136,6 +136,7 @@
     <File Name="sscanf.cpp"/>
     <File Name="ecl_user.h"/>
     <File Name="etl_profile.h"/>
+    <File Name="cleaner.c"/>
   </VirtualDirectory>
   <Reconciliation>
     <Regexes/>

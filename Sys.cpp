@@ -47,7 +47,7 @@ void Sys::setHostname(const char* h)
 }
 
 void Sys::init(){
-    sprintf(_hostname,"wibo_%X",ESP.getChipId());
+   // sprintf(_hostname,"wibo_%X",ESP.getChipId());
 }
 
 const char* Sys::hostname()

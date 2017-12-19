@@ -30,6 +30,9 @@
 #include <WiFiUdp.h>
 #include <SysLog.h>
 
+bool stopHeap(Actor* a,const char* s);
+void startHeap();
+
 extern "C" {
 #include "user_interface.h"
 
@@ -52,7 +55,7 @@ Str line(20);
 
 
 Wifi wifi("wifi");
-//mDNS mdns(wifi);
+mDNS mdns("mdns");
 
 LedBlinker led;
 Mqtt mqtt("mqtt",1024);
@@ -90,39 +93,50 @@ void syslogger(char* start,uint32_t length)
 enum { NONE,TAG,ANCHOR } DWM1000Role=NONE;
 
 #include <vector.h>
-etl::vector<uint32_t,100> v;
+#include <error_handler.h>
+//etl::vector<uint32_t,100> v;
 
+
+void free_error_handler(const etl::exception& e)
+{
+    ERROR( "The error was %s in %s at %d ",e.what() ,e.file_name() ,e.line_number() );
+}
+
+Str strLog(256);
 
 void setup()
 {
     Serial.begin(BAUDRATE, SerialConfig::SERIAL_8E1, SerialMode::SERIAL_FULL); // 8E1 for STM32
     Serial.setDebugOutput(false);
     Sys::delay(1000);
-    v.push_back(3);
-/*    WiFi.setAutoConnect(false);
-    WiFi.setAutoReconnect(false);
-    WiFi.enableAP(false);
-    WiFi.enableSTA(false);
-    WiFi.mode(WIFI_OFF); */
+//   v.push_back(3);
+    /*    WiFi.setAutoConnect(false);
+        WiFi.setAutoReconnect(false);
+        WiFi.enableAP(false);
+        WiFi.enableSTA(false);
+        WiFi.mode(WIFI_OFF); */
+    etl::error_handler::free_function callback(free_error_handler);
+    etl::error_handler::set_callback(callback);
+
     config.load();
     waitConfig();
     eb.onAny().call([](Cbor& msg) { // Log all events -> first handler
-        Str str(256);
-        eb.log(str,msg);
-        INFO("%s",str.c_str());
+        eb.log(strLog,msg);
+        DEBUG("%s",strLog.c_str());
     });
 
-    String hostname;
-    Str strHostname(30),ssid(30),pswd(60),logLevel(5),logOutput(5);
+    Str strHostname(30),logLevel(5),logOutput(5);
     Sys::init();
 
     char hn[20];
     sprintf(hn,"ESP%X",ESP.getChipId());
-    hostname = hn;
+
+    config.setNameSpace("sys");
+    config.get("host",strHostname,hn);
 
 //    system_update_cpu_freq(160);
 
-    Sys::hostname(hn);
+    Sys::hostname(strHostname.c_str());
 
     logger.level(Log::LOG_INFO);
     INFO("version : " __DATE__ " " __TIME__ " host %s",hn);
@@ -132,7 +146,7 @@ void setup()
     config.get("level",logLevel,"I");
     logger.setLogLevel(logLevel.peek(0));
     config.get("output",logOutput,"S");
-    /*  cannot log through UDP too much overhead*/
+    /*  cannot log through UDP too much overhead
     if ( logOutput.peek(0)=='U') {
         config.setNameSpace("syslog");
         config.get("host",udpHost,"192.168.0.150");
@@ -144,12 +158,8 @@ void setup()
         mqtt.setLog(true);
     }
     */
-    INFO("version : " __DATE__ " " __TIME__ " host %s",hn);
 
-    hostname=hn;
-    strHostname = hn;
 
-//    mdns.setConfig(strHostname,2000);
     wifi.setup();
     INFO(" starting Wifi host : '%s' on SSID : '%s' '%s' ", wifi.getHostname(),
          wifi.getSSID(), wifi.getPassword());
@@ -159,9 +169,10 @@ void setup()
     uid.add(labels,LABEL_COUNT);
     led.setMqtt(mqtt.id());
     led.setWifi(wifi.id());
-//    mqtt.setWifi(wifi.id());
+    mqtt.setWifi(wifi.id());
 //    wifi.setup();
-//    mdns.setup();
+    mdns.setWifi(wifi.id());
+    mdns.setup();
 
 //    memory.setup();
 //    spiTester.setup();
@@ -201,23 +212,27 @@ void setup()
 
     return;
 }
-Timer eventBusy("eventBusy",100000);
-Timer eventIdle("eventIdle",100000);
+
+
+extern "C" void tcpCleanup();
+
 extern "C"  void loop()
 {
-//    eventIdle.stop();
-//    eventBusy.start();
 
+
+    startHeap();
     eb.eventLoop();
+    stopHeap(0,"after eventLoop" );
     wifi.loop();
+    stopHeap(0,"after wifi loop" );
     mqtt.loop();
-//    mdns.loop();
+    stopHeap(0,"after mqtt loop" );
+    tcpCleanup();
+    mdns.loop();
     if ( DWM1000Role == TAG ) {
         dwm1000Tag.loop();
     } else if ( DWM1000Role==ANCHOR) {
         dwm1000Anchor.loop();
     }
 
-//    eventBusy.stop();
-//    eventIdle.start();
 }

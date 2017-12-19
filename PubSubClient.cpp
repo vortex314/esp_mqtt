@@ -468,7 +468,7 @@ boolean PubSubClient::write(uint8_t header, uint8_t* buf, uint16_t length) {
     return result;
 #else
     rc = _client->write(buf+(4-llen),length+1+llen);
-     stopHeap(0,"in write 2")
+     stopHeap(0,"in write 2");
     lastOutActivity = millis();
     return (rc == 1+llen+length);
 #endif

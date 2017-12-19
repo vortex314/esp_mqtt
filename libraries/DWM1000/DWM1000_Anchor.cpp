@@ -75,7 +75,7 @@ static uint64 get_tx_timestamp_u64(void);
 static uint64 get_rx_timestamp_u64(void);
 static void final_msg_get_ts(const uint8 *ts_field, uint32 *ts);
 
-
+Property<float>*  distanceProp=0;
 
 Str strLogAnchor(100);
 
@@ -118,7 +118,7 @@ void DWM1000_Anchor::sendBlinkMsg()
     dwt_writetxfctrl(sizeof(_blinkMsg), 0);
     erc = dwt_starttx(DWT_START_TX_IMMEDIATE );
     if ( erc < 0) WARN("BLINK TXD FAILED");
-    INFO("blink ");
+//    INFO("blink ");
 }
 
 int DWM1000_Anchor::sendRespMsg()
@@ -174,8 +174,9 @@ void DWM1000_Anchor::calcFinalMsg()
     tof = tof_dtu * DWT_TIME_UNITS;
     distance = tof * SPEED_OF_LIGHT;
     _distance = distance * 100.0;
-    INFO(" >>>>>>>>> distance : %f for TAG : %X ", distance,
-         (_finalMsg.src[0] << 8) + _finalMsg.src[1]);
+    if ( distanceProp) distanceProp->setReady(true);
+/*    INFO(" >>>>>>>>> distance : %f for TAG : %X ", distance,
+         (_finalMsg.src[0] << 8) + _finalMsg.src[1]); */
 
 }
 
@@ -190,26 +191,26 @@ FrameType DWM1000_Anchor::readMsg(const dwt_callback_data_t* signal)
         FrameType ft = DWM1000::getFrameType(_dwmMsg);
         if (ft == FT_BLINK) {
             memcpy(_blinkMsg.buffer, _dwmMsg.buffer, sizeof(_blinkMsg));
-            INFO(" blink %X : %d : %s",_blinkMsg.getSrc(),_blinkMsg.sequence,uid.label(_state));
+ //           INFO(" blink %X : %d : %s",_blinkMsg.getSrc(),_blinkMsg.sequence,uid.label(_state));
             _blinks++;
         } else if (ft == FT_POLL) {
             memcpy(_pollMsg.buffer, _dwmMsg.buffer, sizeof(_pollMsg));
-            INFO(" poll %X : %d : %s",_pollMsg.getSrc(),_pollMsg.sequence,uid.label(_state));
+//            INFO(" poll %X : %d : %s",_pollMsg.getSrc(),_pollMsg.sequence,uid.label(_state));
             _polls++;
         } else if (ft == FT_RESP) {
             memcpy(_respMsg.buffer, _dwmMsg.buffer, sizeof(_respMsg));
-            INFO(" resp %X : %d : %s ",_respMsg.getSrc(),_respMsg.sequence,uid.label(_state));
+ //           INFO(" resp %X : %d : %s ",_respMsg.getSrc(),_respMsg.sequence,uid.label(_state));
             _resps++;
         } else if (ft == FT_FINAL) {
             memcpy(_finalMsg.buffer, _dwmMsg.buffer, sizeof(_finalMsg));
-            INFO(" final %X : %d : %s",_finalMsg.getSrc(),_finalMsg.sequence,uid.label(_state));
+//            INFO(" final %X : %d : %s",_finalMsg.getSrc(),_finalMsg.sequence,uid.label(_state));
             _finals++;
         } else {
-            INFO(" unknown frame type %X:%X : %s",_dwmMsg.fc[0],_dwmMsg.fc[1],uid.label(_state));
+ //           INFO(" unknown frame type %X:%X : %s",_dwmMsg.fc[0],_dwmMsg.fc[1],uid.label(_state));
         }
         return ft;
     } else {
-        INFO(" invalid length %d : hdr %X:%X : %s",frameLength,_dwmMsg.fc[0],_dwmMsg.fc[1],uid.label(_state));
+//        INFO(" invalid length %d : hdr %X:%X : %s",frameLength,_dwmMsg.fc[0],_dwmMsg.fc[1],uid.label(_state));
         return FT_UNKNOWN;
     }
 }
@@ -239,13 +240,13 @@ WAIT_RXD: {
                     _resps++;
                     update(_dwmMsg.getSrc(),_dwmMsg.sequence);
                     createRespMsg(_respMsg,_pollMsg);
-                    INFO("resp %X : %d",_respMsg.getDst(),_respMsg.sequence);
+ //                   INFO("resp %X : %d",_respMsg.getDst(),_respMsg.sequence);
                     if (sendRespMsg()==0) {
                         goto WAIT_FINAL;
                     };
-                    WARN("FAIL send resp");
+ //                   WARN("FAIL send resp");
                 } else {
-                    WARN(" unexpected frame type %s",uid.label(ft));
+ //                   WARN(" unexpected frame type %s",uid.label(ft));
                 }
             } else if (signal->event == DWT_SIG_RX_TIMEOUT) {
                 if (_blinkTimer.expired()) {
@@ -328,7 +329,7 @@ void DWM1000_Anchor::setup()
     Property<uint32_t>::build(_resps, id(), H("responses"), 1000);
     Property<uint32_t>::build(_finals, id(), H("finals"), 1000);
     Property<uint32_t>::build(_blinks, id(), H("blinks"), 1000);
-    Property<float>::build(_distance, id(), H("distance"), 1000);
+    distanceProp = Property<float>::build(_distance, id(), H("distance"), 1000);
 }
 
 Timer opsTime("DW1000 Action", 10);
@@ -354,7 +355,7 @@ INIT: {
     }
 ENABLE : {
         while(true) {
-            timeout(100);
+            timeout(1000);
             PT_YIELD_UNTIL(timeout());
             if ( oldInterrupts == _interrupts) {
                 sys_mask = dwt_read32bitreg(SYS_MASK_ID);
@@ -371,8 +372,8 @@ ENABLE : {
             oldInterrupts = _interrupts;
 
             INFO(
-                " interrupts : %d blinks : %d polls : %d resps : %d finals :%d heap : %d",
-                _interrupts, _blinks, _polls, _resps, _finals,ESP.getFreeHeap());
+                " interrupts : %d blinks : %d polls : %d resps : %d finals :%d heap : %d dist : %f",
+                _interrupts, _blinks, _polls, _resps, _finals,ESP.getFreeHeap(),_distance);
 
             if (_finals != oldFinals) {
                 oldFinals = _finals;

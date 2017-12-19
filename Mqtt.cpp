@@ -5,6 +5,8 @@
 
 #include <unistd.h>
 #include <fcntl.h>
+bool stopHeap(Actor* a,const char* s);
+void startHeap();
 Mqtt* Mqtt::_thisMqtt;
 //--------------------------------------------------------------------------------------------------------
 Mqtt::Mqtt(const char* name,uint32_t maxSize) : Actor(name),
@@ -25,13 +27,13 @@ void Mqtt::setup()
     config.setNameSpace("mqtt");
     config.get("host",_host,"limero.ddns.net");
     config.get("port",_port,1883);
-    config.get("clientId",_clientId,Sys::hostname());
+    _clientId = Sys::hostname();
     config.get("user",_user,"");
     config.get("password",_password,"");
     _willTopic = "src/";
     _willTopic += Sys::hostname();
     _willTopic += "/system/alive";
-    config.get("mqtt.willTopic",_willTopic,_willTopic.c_str());
+//    config.get("mqtt.willTopic",_willTopic,_willTopic.c_str());
     config.get("willMessage",_willMessage,"false");
     config.get("keepAlive",_keepAlive,20);
 
@@ -80,7 +82,14 @@ void Mqtt::onEvent(Cbor& msg)
 //--------------------------------------------------------------------------------------------------------
 void Mqtt::loop()
 {
-    _pubSub->loop();
+   if ( _pubSub->loop() == false){
+       if (  H("connected") == state() ) {
+           state(H("disconnected"));
+           pubSubConnect();
+            stopHeap(0," after pubSubconnect");
+       }
+       return;
+   }
     if ( _pubSub->state() != _client_state) {
         _client_state = _pubSub->state();
         if ( _client_state == MQTT_CONNECTED ) {
@@ -89,7 +98,9 @@ void Mqtt::loop()
         } else {
             state(H("disconnected"));
             INFO(" state changed : %s ",uid.label(state()));
+            _pubSub->disconnect();
             pubSubConnect();
+            stopHeap(0," after pubSubconnect");
         }
 //       eb.publish(id(),state());
         //      eb.send();
@@ -173,8 +184,7 @@ void Mqtt::disconnect(Cbor& cbor)
     eb.send();
 }
 //--------------------------------------------------------------------------------------------------------
-void startHeap();
-void stopHeap(Actor* a,const char* s);
+
 //--------------------------------------------------------------------------------------------------------
 void Mqtt::publish(Cbor& cbor)
 {
@@ -190,8 +200,9 @@ void Mqtt::publish(Cbor& cbor)
         _pubSub->loop();    // to avoid timeouts  https://github.com/knolleary/pubsubclient/issues/151
         stopHeap(this,"loop1");
         if ( _pubSub->publish(_topic.c_str(),_message.data(),_message.length(),retain)) {
+            _pubSub->loop();
             stopHeap(this,"publish");
-            _pubSub->loop();    // to avoid timeouts  https://github.com/knolleary/pubsubclient/issues/151
+                // to avoid timeouts  https://github.com/knolleary/pubsubclient/issues/151
             eb.reply().addKeyValue(EB_ERROR, (uint32_t) E_OK);
             eb.send();
         } else {
