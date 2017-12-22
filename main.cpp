@@ -96,6 +96,11 @@ enum { NONE,TAG,ANCHOR } DWM1000Role=NONE;
 #include <error_handler.h>
 //etl::vector<uint32_t,100> v;
 
+#include <malloc.h>
+
+void report_memory() {
+    malloc_stats();
+}
 
 void free_error_handler(const etl::exception& e)
 {
@@ -196,7 +201,7 @@ void setup()
         DWM1000Role=ANCHOR;
         dwm1000Anchor.setShortAddress(ESP.getChipId() & 0xFFFF);
         dwm1000Anchor.setLongAddress(mac);
-        dwm1000Anchor.setup();
+ //       dwm1000Anchor.setup();
     }
 
     // mqtt.setHost("limero.ddns.net")

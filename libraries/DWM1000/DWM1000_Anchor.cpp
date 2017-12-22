@@ -335,6 +335,8 @@ void DWM1000_Anchor::setup()
 Timer opsTime("DW1000 Action", 10);
 uint64_t _startTime;
 
+#include <malloc.h>
+
 void DWM1000_Anchor::onEvent(Cbor& msg)
 {
     static uint32_t oldInterrupts;
@@ -374,12 +376,15 @@ ENABLE : {
             INFO(
                 " interrupts : %d blinks : %d polls : %d resps : %d finals :%d heap : %d dist : %f",
                 _interrupts, _blinks, _polls, _resps, _finals,ESP.getFreeHeap(),_distance);
+               void* ptr = malloc(1024);
+               INFO(" malloc : 0x%X ",ptr);
+               free(ptr);
 
             if (_finals != oldFinals) {
                 oldFinals = _finals;
-                eb.publicEvent(id(), H("distance")).addKeyValue(EB_DATA,
+           /*     eb.publicEvent(id(), H("distance")).addKeyValue(EB_DATA,
                         distance);
-                eb.send();
+                eb.send();*/
             }
 
         }

@@ -7,6 +7,11 @@
 
 #include "Wifi.h"
 #include <Config.h>
+#include <Property.h>
+
+const  char* getIP(){
+  return  WiFi.localIP().toString().c_str();
+}
 
 Wifi::Wifi(const char* name) :
     Actor(name),_password(60),_ssid(30),_hostname(30)
@@ -45,12 +50,13 @@ void Wifi::setup()
     config.setNameSpace("wifi");
     config.get("ssid",_ssid,"Merckx3");
     config.get("password",_password,"LievenMarletteEwoutRonald");
-    config.get("host",_hostname,Sys::hostname());
+    _hostname=Sys::hostname();
     state(0);
 //    switchState(H("disconnected"));
     WiFi.hostname(_hostname.c_str());
 //   WiFi.begin(_ssid.c_str(), _password.c_str());
     WiFi.enableSTA(true);
+    Property<const char*>::build(getIP, id(), H("IP"), 20000);
 }
 
 void Wifi::loop()
@@ -67,8 +73,14 @@ void Wifi::loop()
                  getSSID(), getPassword());
 
     }
-    if ( WiFi.status() == WL_CONNECTED ) switchState(H("connected"));
-    if (  WiFi.status() == WL_DISCONNECTED ) switchState(H("disconnected"));
+    if ( WiFi.status() == WL_CONNECTED )  {
+        switchState(H("connected"));
+    }
+    else if (  WiFi.status() == WL_DISCONNECTED ) {
+        switchState(H("disconnected"));
+    } else  {
+        ERROR(" unknown Wifi status%d ",WiFi.status());
+    }
 //   switchState(WiFi.status() == WL_CONNECTED ? H("connected") : H("disconnected"));
 }
 
@@ -88,6 +100,8 @@ const char*  Wifi::getSSID()
 {
     return _ssid.c_str();
 }
+
+
 
 const char*  Wifi::getPassword()
 {

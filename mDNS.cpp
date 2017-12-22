@@ -36,7 +36,7 @@ ERROR(" no events expected");
 
 void mDNS::onWifiConnected()
 {
-    if (!MDNS.begin(WiFi.hostname().c_str(),WiFi.localIP())) {
+    if (!MDNS.begin(Sys::hostname(),WiFi.localIP())) {
         WARN("Error setting up MDNS responder!");
     }
     INFO(" MDNS publish %s ",WiFi.hostname().c_str());

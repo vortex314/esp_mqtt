@@ -144,10 +144,12 @@ bool Mqtt::pubSubConnect()
     if ( _pubSub->connect (_clientId.c_str(), _user.c_str(), _password.c_str(), _willTopic.c_str(), _willQos, _willRetain, _willMessage.c_str())) {
         eb.publish(id(),H("connected"));
         state(H("connected"));
+        INFO(" Mqtt connected ");
         return true;
     } else {
         eb.publish(id(),H("disconnected"));
         state(H("disconnected"));
+        ERROR("Mqtt connection failed. State :  %d ",_pubSub->state());
         return false;
     }
 }
